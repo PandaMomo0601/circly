@@ -610,8 +610,13 @@ function drawGrid() {
             const y = gridOrigin.y + r * cellSize;
 
             // Cell bg
-            ctx.fillStyle = '#34495e'; // Highlighted dark cell
+            ctx.fillStyle = '#34495e'; // 填充格子的暗色底色
             ctx.fillRect(x + 4, y + 4, cellSize - 8, cellSize - 8);
+
+            // 【Bug修复：防止画笔颜色泄漏】
+            // 每次画格子边框前，强制把画笔颜色重置为深色背景色，避免被圆环颜色污染
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#2c3e50';
             ctx.strokeRect(x, y, cellSize, cellSize);
 
             // Check if this cell is part of preview matches
