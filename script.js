@@ -26,8 +26,7 @@ class SoundManager {
         this.ctx = null;
         this.muted = false;
         this.bgmNodes = [];
-        this.bgmInterval = null;
-        this.bgmIndex = 0; // Track position in Canon in D sequence
+        this.bgmSource = null;
     }
 
     init() {
@@ -45,7 +44,6 @@ class SoundManager {
     }
 
     playTone(freq, type, duration, vol = 0.1, attack = 0.01, release = 0.1) {
-        console.log('playTone:', { freq, type, duration, vol, state: this.ctx ? this.ctx.state : 'null' });
         if (this.muted || !this.ctx) return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -54,15 +52,18 @@ class SoundManager {
         osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
 
         const t = this.ctx.currentTime;
-        gain.gain.setValueAtTime(0.001, t);
-        gain.gain.linearRampToValueAtTime(vol, t + attack);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + duration + release);
+        // Start gain at 0
+        gain.gain.setValueAtTime(0, t);
+        // Approach target volume (vol) with a time-constant of attack/3
+        gain.gain.setTargetAtTime(vol, t, attack / 3);
+        // Wait until duration is over, then approach 0 with time-constant of release/3
+        gain.gain.setTargetAtTime(0, t + duration, release / 3);
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
 
-        osc.start();
-        osc.stop(t + duration + release);
+        osc.start(t);
+        osc.stop(t + duration + release + 0.1); // add buffer to stop
     }
 
     playPickup() {
@@ -104,49 +105,52 @@ class SoundManager {
 
         const t = this.ctx.currentTime;
         gain.gain.setValueAtTime(0.2, t);
-        gain.gain.linearRampToValueAtTime(0.001, t + 2.0);
+        gain.gain.setTargetAtTime(0, t, 2.0 / 3); // Smooth decay over 2 seconds
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
-        osc.stop(t + 2.0);
+        osc.stop(t + 2.0 + 0.1);
     }
 
     startBGM() {
-        if (this.bgmInterval || this.muted || !this.ctx) return;
+        if (this.bgmSource || this.muted || !this.ctx) return;
 
-        // Pachelbel's Canon in D major - Root notes progression
-        // D -> A -> Bm -> F#m -> G -> D -> G -> A
-        const canonSequence = [
-            146.83, // D3
-            110.00, // A2 (lower octave for bass feel)
-            123.47, // B2
-            92.50,  // F#2
-            98.00,  // G2
-            146.83, // D3
-            98.00,  // G2
-            110.00  // A2
-        ];
+        // Procedural White Noise Generator (Library/Radio static vibe)
+        const bufferSize = this.ctx.sampleRate * 2; // 2 seconds of noise 
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
 
-        this.bgmInterval = setInterval(() => {
-            if (this.ctx.state === 'running' && !this.muted && !state.gameOver) {
-                const freq = canonSequence[this.bgmIndex % canonSequence.length];
+        // Fill buffer with random noise (static)
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
 
-                // Play base note (ambient drone)
-                this.playTone(freq, 'sine', 2.5, 0.03, 1.0, 2.0);
+        this.bgmSource = this.ctx.createBufferSource();
+        this.bgmSource.buffer = buffer;
+        this.bgmSource.loop = true;
 
-                // Play octave higher for more texture
-                this.playTone(freq * 2, 'sine', 2.0, 0.015, 1.5, 1.5);
+        // Pass noise through a lowpass filter to make it sound like muffled wind or deep static
+        // rather than harsh TV white noise.
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 400; // Cut off high frequencies for a softer rumble
 
-                this.bgmIndex++;
-            }
-        }, 2000); // 2 seconds per chord makes it solemn and relaxing
+        const gain = this.ctx.createGain();
+        gain.gain.value = 0.05; // Very low volume ambient
+
+        this.bgmSource.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        this.bgmSource.start();
     }
 
     stopBGM() {
-        if (this.bgmInterval) {
-            clearInterval(this.bgmInterval);
-            this.bgmInterval = null;
+        if (this.bgmSource) {
+            this.bgmSource.stop();
+            this.bgmSource.disconnect();
+            this.bgmSource = null;
         }
     }
 }
