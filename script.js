@@ -12,7 +12,7 @@ const COLORS = [
     '#FF9F43'  // Pastel Orange
 ];
 const RING_SIZES = [0.3, 0.52, 0.74]; // Reduced large size slightly to avoid "box border" look
-const LINE_WIDTHS = [6, 8, 10]; // Slightly thicker for softer look
+const LINE_WIDTHS = [6, 12, 6]; // Inner solid (drawn via fill), Middle thick, Outer thin
 
 // Game Configuration
 const ANIMATION_SPEED = 0.2; // 0-1 lerp factor
@@ -486,7 +486,7 @@ function clearMatches(matches) {
     if (matches.length > 3) comboMultiplier = 2;
     if (matches.length >= 6) comboMultiplier = 3;
     if (matches.length >= 9) comboMultiplier = 4;
-    
+
     const points = matches.length * 100 * comboMultiplier;
     addScore(points);
     sound.playClear(matches.length);
@@ -678,7 +678,7 @@ function drawGrid() {
                     const color = COLORS[anim.color];
                     const lineWidth = LINE_WIDTHS[anim.s];
                     const alpha = anim.progress; // Fade out
-                    
+
                     if (anim.s === 0) {
                         ctx.beginPath();
                         ctx.arc(x + cellSize / 2, y + cellSize / 2, radius, 0, Math.PI * 2);
