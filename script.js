@@ -9,7 +9,9 @@ const COLORS = [
     '#FF6B6B', // Pastel Red
     '#4ECDC4', // Pastel Teal/Blue
     '#FFE66D', // Pastel Yellow
-    '#FF9F43'  // Pastel Orange
+    '#FF9F43', // Pastel Orange
+    '#9B59B6', // Pastel Purple (5th color)
+    '#2ECC71'  // Pastel Green (6th color)
 ];
 const RING_SIZES = [0.3, 0.52, 0.74]; // Reduced large size slightly to avoid "box border" look
 const LINE_WIDTHS = [6, 12, 6]; // Inner solid (drawn via fill), Middle thick, Outer thin
@@ -25,18 +27,25 @@ class SoundManager {
         this.muted = false;
         this.bgmNodes = [];
         this.bgmInterval = null;
+        this.bgmIndex = 0; // Track position in Canon in D sequence
     }
 
     init() {
+        console.log('SoundManager.init() called');
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            this.startBGM();
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume().then(() => this.startBGM());
+            } else {
+                this.startBGM();
+            }
         } else if (this.ctx.state === 'suspended') {
             this.ctx.resume().then(() => this.startBGM());
         }
     }
 
     playTone(freq, type, duration, vol = 0.1, attack = 0.01, release = 0.1) {
+        console.log('playTone:', { freq, type, duration, vol, state: this.ctx ? this.ctx.state : 'null' });
         if (this.muted || !this.ctx) return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -45,7 +54,7 @@ class SoundManager {
         osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
 
         const t = this.ctx.currentTime;
-        gain.gain.setValueAtTime(0, t);
+        gain.gain.setValueAtTime(0.001, t);
         gain.gain.linearRampToValueAtTime(vol, t + attack);
         gain.gain.exponentialRampToValueAtTime(0.001, t + duration + release);
 
@@ -93,28 +102,45 @@ class SoundManager {
         osc.frequency.setValueAtTime(300, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 2.0);
 
-        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 2.0);
+        const t = this.ctx.currentTime;
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.linearRampToValueAtTime(0.001, t + 2.0);
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
-        osc.stop(this.ctx.currentTime + 2.0);
+        osc.stop(t + 2.0);
     }
 
     startBGM() {
         if (this.bgmInterval || this.muted || !this.ctx) return;
 
-        // Simple generative ambient: play a random chord note every few seconds
-        const notes = [261.63, 329.63, 392.00, 493.88, 523.25]; // C Major 7
+        // Pachelbel's Canon in D major - Root notes progression
+        // D -> A -> Bm -> F#m -> G -> D -> G -> A
+        const canonSequence = [
+            146.83, // D3
+            110.00, // A2 (lower octave for bass feel)
+            123.47, // B2
+            92.50,  // F#2
+            98.00,  // G2
+            146.83, // D3
+            98.00,  // G2
+            110.00  // A2
+        ];
 
         this.bgmInterval = setInterval(() => {
             if (this.ctx.state === 'running' && !this.muted && !state.gameOver) {
-                const freq = notes[Math.floor(Math.random() * notes.length)];
-                // Very long attack and release for pad-like sound
-                this.playTone(freq * 0.5, 'sine', 4.0, 0.02, 2.0, 3.0);
+                const freq = canonSequence[this.bgmIndex % canonSequence.length];
+
+                // Play base note (ambient drone)
+                this.playTone(freq, 'sine', 2.5, 0.03, 1.0, 2.0);
+
+                // Play octave higher for more texture
+                this.playTone(freq * 2, 'sine', 2.0, 0.015, 1.5, 1.5);
+
+                this.bgmIndex++;
             }
-        }, 3000);
+        }, 2000); // 2 seconds per chord makes it solemn and relaxing
     }
 
     stopBGM() {
@@ -165,6 +191,7 @@ const restartBtn = document.getElementById('restart-btn');
 
 // --- Initialization ---
 function init() {
+    console.log('SoundManager.init() called');
     // Setup Grid
     state.grid = Array(GRID_SIZE).fill(null).map(() =>
         Array(GRID_SIZE).fill(null).map(() => [null, null, null])
@@ -187,6 +214,17 @@ function init() {
 
     // Start Game
     resetGame();
+
+    // Global audio unlock (Safari/Mobile fix)
+    const unlockAudio = () => {
+        sound.init();
+        document.removeEventListener('mousedown', unlockAudio);
+        document.removeEventListener('touchstart', unlockAudio);
+        document.removeEventListener('keydown', unlockAudio);
+    };
+    document.addEventListener('mousedown', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
 
     // Resize & Loop
     window.addEventListener('resize', resize);
@@ -226,9 +264,9 @@ function fillHand() {
 }
 
 function getDifficulty() {
-    // 0 to 1 scaling over 3 minutes (180000ms)
+    // 0 to 1 scaling over 5 minutes (300000ms)
     const elapsed = Date.now() - state.difficultyStartTime;
-    const diff = Math.min(elapsed / 180000, 1.0);
+    const diff = Math.min(elapsed / 300000, 1.0);
     return diff;
 }
 
@@ -242,14 +280,17 @@ function generatePiece() {
     let hasRing = false;
 
     // Base probability to add a ring at size i
-    // Easy: 40%, Hard: 60%
-    const baseProb = 0.4 + (difficulty * 0.2);
+    // Easy: 40%, Hard: 80% (Increased piece density pressure over time)
+    const baseProb = 0.4 + (difficulty * 0.4);
+
+    // Explicit Difficulty: Available colors based on score
+    const availableColorCount = state.score >= 10000 ? 5 : 4;
 
     // Color consistency
     // Easy: High chance all rings in this combo share color
     // Hard: High chance random colors
     const consistentColor = Math.random() > (difficulty * 0.8); // Becomes rarer
-    const baseColor = Math.floor(Math.random() * COLORS.length);
+    const baseColor = Math.floor(Math.random() * availableColorCount);
 
     while (!hasRing) {
         for (let i = 0; i < 3; i++) {
@@ -257,7 +298,7 @@ function generatePiece() {
                 if (consistentColor) {
                     piece[i] = { size: i, color: baseColor };
                 } else {
-                    piece[i] = { size: i, color: Math.floor(Math.random() * COLORS.length) };
+                    piece[i] = { size: i, color: Math.floor(Math.random() * availableColorCount) };
                 }
                 hasRing = true;
             }
@@ -780,7 +821,7 @@ function findMatchesInGrid(gridToCheck) {
             const cell = gridToCheck[r][c];
             if (cell[0] && cell[1] && cell[2] && cell[0].color === cell[1].color && cell[1].color === cell[2].color) {
                 const targetColor = cell[0].color;
-                
+
                 // Add reason for this trigger point
                 reasons.push({ type: 'stack', r: r, c: c, color: targetColor });
 
@@ -964,7 +1005,7 @@ function drawVFX() {
             const y1 = state.layout.gridOrigin.y + (anim.startR + 0.5) * state.layout.cellSize;
             const x2 = state.layout.gridOrigin.x + (anim.endC + 0.5) * state.layout.cellSize;
             const y2 = state.layout.gridOrigin.y + (anim.endR + 0.5) * state.layout.cellSize;
-            
+
             // Draw glowing line
             ctx.beginPath();
             ctx.moveTo(x1, y1);
@@ -976,7 +1017,7 @@ function drawVFX() {
             ctx.shadowColor = COLORS[anim.color];
             ctx.globalAlpha = Math.min(1.0, anim.progress);
             ctx.stroke();
-            
+
             // Draw inner intense core
             ctx.beginPath();
             ctx.moveTo(x1, y1);
@@ -990,13 +1031,13 @@ function drawVFX() {
             const x = state.layout.gridOrigin.x + (anim.c + 0.5) * state.layout.cellSize;
             const y = state.layout.gridOrigin.y + (anim.r + 0.5) * state.layout.cellSize;
             const radius = state.layout.cellSize * 0.8 * (1.5 - anim.progress); // Expands slightly
-            
+
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fillStyle = COLORS[anim.color];
             ctx.globalAlpha = Math.min(1.0, anim.progress) * 0.4;
             ctx.fill();
-            
+
             // Bright ring burst
             ctx.beginPath();
             ctx.arc(x, y, radius * 0.8, 0, Math.PI * 2);
