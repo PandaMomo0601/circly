@@ -133,6 +133,7 @@ const state = {
     hands: [], // 3 bottom slots
     score: 0,
     bestScore: parseInt(localStorage.getItem('colorRings_best') || '0'),
+    round: 1, // New Round tracking
     startTime: 0, // For difficulty scaling
     drag: {
         active: false,
@@ -176,7 +177,7 @@ function init() {
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault(); // Prevent scroll
         handleMove(e.touches[0]);
-    });
+    }, { passive: false });
     canvas.addEventListener('touchend', handleEnd);
 
     // Setup UI
@@ -201,7 +202,9 @@ function resetGame() {
     state.particles = [];
     state.hands = [];
 
-    state.startTime = Date.now(); // Reset difficulty timer
+    state.difficultyStartTime = Date.now();
+    state.round = 1;
+    updateRound();
 
     if (sound.ctx) sound.startBGM();
 
@@ -212,26 +215,28 @@ function resetGame() {
 }
 
 function fillHand() {
+    state.round++;
+    updateRound();
     state.hands = [];
     while (state.hands.length < 3) {
-        state.hands.push(generateRandomRingCombo());
+        state.hands.push(generatePiece());
     }
 }
 
 function getDifficulty() {
     // 0 to 1 scaling over 3 minutes (180000ms)
-    const elapsed = Date.now() - state.startTime;
+    const elapsed = Date.now() - state.difficultyStartTime;
     const diff = Math.min(elapsed / 180000, 1.0);
     return diff;
 }
 
-function generateRandomRingCombo() {
+function generatePiece() {
     // Difficulty influences randomness
     // Low diff: Mostly single rings, matching colors
     // High diff: More rings per combo, mismatched colors
 
     const difficulty = getDifficulty();
-    const combo = [null, null, null];
+    const piece = [null, null, null];
     let hasRing = false;
 
     // Base probability to add a ring at size i
@@ -248,16 +253,16 @@ function generateRandomRingCombo() {
         for (let i = 0; i < 3; i++) {
             if (Math.random() < baseProb) {
                 if (consistentColor) {
-                    combo[i] = baseColor;
+                    piece[i] = { size: i, color: baseColor };
                 } else {
-                    combo[i] = Math.floor(Math.random() * COLORS.length);
+                    piece[i] = { size: i, color: Math.floor(Math.random() * COLORS.length) };
                 }
                 hasRing = true;
             }
         }
         // If we failed to generate any ring (rare but possible), retry loop
     }
-    return combo;
+    return piece;
 }
 
 // --- Layout & Resize ---
@@ -377,9 +382,9 @@ function handleEnd() {
 
     if (gridX >= 0 && gridX < GRID_SIZE && gridY >= 0 && gridY < GRID_SIZE) {
         // Valid grid coordinate, check if placeable
-        const handItem = state.hands[state.drag.handIndex];
-        if (canPlace(gridX, gridY, handItem)) {
-            placeRing(gridX, gridY, handItem);
+        const piece = state.hands[state.drag.handIndex];
+        if (canPlace(gridX, gridY, piece)) {
+            placeRing(gridX, gridY, piece);
             state.hands[state.drag.handIndex] = null; // Remove from hand
             sound.playPlace();
             success = true;
@@ -387,10 +392,10 @@ function handleEnd() {
             // Check matches or game over
             processTurn();
         } else {
-            sound.playError();
+            // sound.playError(); // Removed penalty for invalid drop
         }
     } else {
-        sound.playError();
+        // sound.playError(); // Removed penalty for dropping outside grid
     }
 
     // Reset drag
@@ -399,24 +404,24 @@ function handleEnd() {
 }
 
 // --- Game Logic ---
-function canPlace(gx, gy, rings) {
-    if (!rings) return false;
+function canPlace(gx, gy, piece) {
+    if (!piece) return false;
     const cell = state.grid[gy][gx];
 
     // Check collision: if grid cell has a ring at index i, and hand has ring at index i, collision.
     for (let i = 0; i < 3; i++) {
-        if (rings[i] !== null && cell[i] !== null) {
+        if (piece[i] !== null && cell[i] !== null) {
             return false;
         }
     }
     return true;
 }
 
-function placeRing(gx, gy, rings) {
+function placeRing(gx, gy, piece) {
     const cell = state.grid[gy][gx];
     for (let i = 0; i < 3; i++) {
-        if (rings[i] !== null) {
-            cell[i] = rings[i];
+        if (piece[i] !== null) {
+            cell[i] = piece[i];
         }
     }
     addScore(10);
@@ -472,9 +477,18 @@ function clearMatches(matches) {
     if (matches.length === 0) return;
 
     // Score calculation
-    // Base 100 per ring? Or 100 per match?
-    // Let's do 100 * count * combo multiplier (if we had one)
-    addScore(matches.length * 100);
+    // 1 match means 1 line (3 rings) or 1 stack (3 rings).
+    // matches array holds exactly the rings to remove.
+    // If you clear 1 line, matches.length is usually 3. 
+    // If you clear 2 lines intersecting, it could be 5 or 6.
+    // Combo logic: Base score per ring * multiplier based on total rings matched
+    let comboMultiplier = 1;
+    if (matches.length > 3) comboMultiplier = 2;
+    if (matches.length >= 6) comboMultiplier = 3;
+    if (matches.length >= 9) comboMultiplier = 4;
+    
+    const points = matches.length * 100 * comboMultiplier;
+    addScore(points);
     sound.playClear(matches.length);
 
     // Particles
@@ -484,7 +498,18 @@ function clearMatches(matches) {
         const cy = state.layout.gridOrigin.y + (m.r + 0.5) * state.layout.cellSize;
         spawnParticles(cx, cy, COLORS[m.color]);
 
-        // Remove from grid
+        // Create clear animation
+        state.animations.push({
+            type: 'clear',
+            r: m.r,
+            c: m.c,
+            s: m.s,
+            color: m.color,
+            progress: 1.0
+        });
+
+        // Remove from grid immediately so logic works,
+        // visuals will be handled by animations array in draw function.
         state.grid[m.r][m.c][m.s] = null;
     });
 }
@@ -495,13 +520,13 @@ function checkGameOverCondition() {
     let emptyHand = true;
 
     for (let i = 0; i < state.hands.length; i++) {
-        const hand = state.hands[i];
-        if (hand) {
+        const handPiece = state.hands[i];
+        if (handPiece) {
             emptyHand = false;
             // Check all grid spots
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
-                    if (canPlace(c, r, hand)) {
+                    if (canPlace(c, r, handPiece)) {
                         return false; // Found a valid move
                     }
                 }
@@ -518,6 +543,11 @@ function addScore(points) {
     updateScore(state.score);
 }
 
+function updateRound() {
+    const roundEl = document.getElementById('round');
+    if (roundEl) roundEl.textContent = state.round;
+}
+
 function updateScore(s) {
     scoreEl.textContent = s;
 }
@@ -530,6 +560,15 @@ function loop() {
 }
 
 function update() {
+    // Update animations
+    for (let i = state.animations.length - 1; i >= 0; i--) {
+        const anim = state.animations[i];
+        anim.progress -= 0.05; // 20 frames to clear
+        if (anim.progress <= 0) {
+            state.animations.splice(i, 1);
+        }
+    }
+
     // Update particles
     for (let i = state.particles.length - 1; i >= 0; i--) {
         const p = state.particles[i];
@@ -559,14 +598,14 @@ function draw() {
 
     // Draw Dragged Item
     if (state.drag.active) {
-        const handItem = state.hands[state.drag.handIndex];
-        if (handItem) {
+        const piece = state.hands[state.drag.handIndex];
+        if (piece) {
             const x = state.drag.currentPos.x;
             const y = state.drag.currentPos.y;
             // Dragged items often look better a bit larger or lifted
             // PHASE 3: Visual Offset (Shift Up)
             const visualY = y - (state.layout.cellSize * 1.2);
-            drawRingCombo(x, visualY, handItem, state.layout.cellSize * 1.0, 1.0);
+            drawPiece(x, visualY, piece, state.layout.cellSize * 1.0, 1.0);
         }
     }
 }
@@ -588,14 +627,14 @@ function drawGrid() {
         const gy = Math.floor((visualY - gridOrigin.y) / cellSize);
 
         if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
-            const handItem = state.hands[state.drag.handIndex];
-            if (canPlace(gx, gy, handItem)) {
+            const piece = state.hands[state.drag.handIndex];
+            if (canPlace(gx, gy, piece)) {
                 // Simulate placement to check matches
                 // Clone grid first
                 const simGrid = JSON.parse(JSON.stringify(state.grid)); // Deep clone simple structure
                 // Place
                 for (let i = 0; i < 3; i++) {
-                    if (handItem[i] !== null) simGrid[gy][gx][i] = handItem[i];
+                    if (piece[i] !== null) simGrid[gy][gx][i] = piece[i];
                 }
 
                 // Check matches with simGrid
@@ -629,7 +668,29 @@ function drawGrid() {
 
             // Draw contents
             const cell = state.grid[r][c];
-            drawRingCombo(x + cellSize / 2, y + cellSize / 2, cell, cellSize, 1.0);
+            drawPiece(x + cellSize / 2, y + cellSize / 2, cell, cellSize, 1.0);
+
+            // Draw animations for this cell
+            for (let i = 0; i < state.animations.length; i++) {
+                const anim = state.animations[i];
+                if (anim.r === r && anim.c === c) {
+                    const radius = (cellSize / 2) * RING_SIZES[anim.s] * anim.progress; // Shrink
+                    const color = COLORS[anim.color];
+                    const lineWidth = LINE_WIDTHS[anim.s];
+                    const alpha = anim.progress; // Fade out
+                    
+                    if (anim.s === 0) {
+                        ctx.beginPath();
+                        ctx.arc(x + cellSize / 2, y + cellSize / 2, radius, 0, Math.PI * 2);
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = alpha;
+                        ctx.fill();
+                        ctx.globalAlpha = 1.0;
+                    } else {
+                        drawRing(x + cellSize / 2, y + cellSize / 2, radius, color, lineWidth, alpha);
+                    }
+                }
+            }
 
             // Highlight specific matching rings
             // Check if {r, c, s} is in previewMatches
@@ -668,10 +729,10 @@ function findMatchesInGrid(gridToCheck) {
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
             const cell = gridToCheck[r][c];
-            if (cell[0] !== null && cell[0] === cell[1] && cell[1] === cell[2]) {
-                addRemoval(r, c, 0, cell[0]);
-                addRemoval(r, c, 1, cell[1]);
-                addRemoval(r, c, 2, cell[2]);
+            if (cell[0] && cell[1] && cell[2] && cell[0].color === cell[1].color && cell[1].color === cell[2].color) {
+                addRemoval(r, c, 0, cell[0].color);
+                addRemoval(r, c, 1, cell[1].color);
+                addRemoval(r, c, 2, cell[2].color);
             }
         }
     }
@@ -688,13 +749,13 @@ function findMatchesInGrid(gridToCheck) {
             let count = 0;
             for (const pos of line) {
                 const cell = gridToCheck[pos.r][pos.c];
-                if (cell.includes(colorIdx)) count++;
+                if (cell.some(ring => ring && ring.color === colorIdx)) count++;
             }
             if (count === GRID_SIZE) {
                 for (const pos of line) {
                     const cell = gridToCheck[pos.r][pos.c];
                     for (let s = 0; s < 3; s++) {
-                        if (cell[s] === colorIdx) addRemoval(pos.r, pos.c, s, colorIdx);
+                        if (cell[s] && cell[s].color === colorIdx) addRemoval(pos.r, pos.c, s, colorIdx);
                     }
                 }
             }
@@ -715,15 +776,15 @@ function drawHandArea() {
         // Skip if this slot is being dragged
         if (state.drag.active && state.drag.handIndex === i) continue;
 
-        const combo = state.hands[i];
-        if (!combo) continue;
+        const piece = state.hands[i];
+        if (!piece) continue;
 
         const x = state.layout.handOrigin.x + (i * state.layout.handSpacing);
         const y = handOrigin.y;
 
         // Removed slot background circle as requested
 
-        drawRingCombo(x, y, combo, cellSize * 0.8, 1.0);
+        drawPiece(x, y, piece, cellSize * 0.8, 1.0);
     }
 }
 
@@ -732,12 +793,14 @@ function drawHandArea() {
  * combo: [colorIdxSmall, colorIdxMed, colorIdxLarge]
  * size: The pixel width/height of the container
  */
-function drawRingCombo(x, y, combo, size, alpha) {
-    if (!combo) return;
+function drawPiece(x, y, piece, size, alpha) {
+    if (!piece) return;
 
     for (let i = 0; i < 3; i++) {
-        const colorIdx = combo[i];
-        if (colorIdx !== null) {
+        const ring = piece[i];
+        if (ring) {
+            const colorIdx = ring.color;
+
             const radius = (size / 2) * RING_SIZES[i];
             const color = COLORS[colorIdx];
             const lineWidth = LINE_WIDTHS[i];
