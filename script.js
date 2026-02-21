@@ -144,6 +144,7 @@ const state = {
     },
     particles: [],
     animations: [],
+    floatingTexts: [],
     gameOver: false,
     layout: {
         cellSize: 0,
@@ -200,6 +201,7 @@ function resetGame() {
     state.score = 0;
     state.gameOver = false;
     state.particles = [];
+    state.floatingTexts = [];
     state.hands = [];
 
     state.difficultyStartTime = Date.now();
@@ -430,11 +432,13 @@ function placeRing(gx, gy, piece) {
 
 function processTurn() {
     // Check matches
-    const matches = findMatches();
+    const matchData = findMatches();
+    const matches = matchData.removals;
+    const reasons = matchData.reasons;
 
     if (matches.length > 0) {
         // Execute clear
-        clearMatches(matches);
+        clearMatches(matches, reasons);
 
         // Refill hand if empty logic usually happens after drop, 
         // but if we match, we might want to delay slightly or just do it.
@@ -473,8 +477,20 @@ function processTurn() {
 // Old matches logic removed/replaced by specific implementation
 /* function findMatches() { ... } */
 
-function clearMatches(matches) {
+function clearMatches(matches, reasons = []) {
     if (matches.length === 0) return;
+
+    // Push VFX animations based on reasons
+    reasons.forEach(reason => {
+        state.animations.push({
+            type: reason.type, // 'line' or 'stack'
+            r: reason.r, c: reason.c,
+            startR: reason.startR, startC: reason.startC,
+            endR: reason.endR, endC: reason.endC,
+            color: reason.color,
+            progress: 1.5 // Lives slightly longer than rings (1.0)
+        });
+    });
 
     // Score calculation
     // 1 match means 1 line (3 rings) or 1 stack (3 rings).
@@ -490,6 +506,22 @@ function clearMatches(matches) {
     const points = matches.length * 100 * comboMultiplier;
     addScore(points);
     sound.playClear(matches.length);
+
+    // Floating Score Text
+    let sumX = 0, sumY = 0;
+    matches.forEach(m => {
+        sumX += state.layout.gridOrigin.x + (m.c + 0.5) * state.layout.cellSize;
+        sumY += state.layout.gridOrigin.y + (m.r + 0.5) * state.layout.cellSize;
+    });
+    if (matches.length > 0) {
+        state.floatingTexts.push({
+            text: '+' + points,
+            x: sumX / matches.length,
+            y: sumY / matches.length,
+            life: 1.0,
+            color: '#F1C40F' // Bright yellow
+        });
+    }
 
     // Particles
     matches.forEach(m => {
@@ -580,6 +612,16 @@ function update() {
             state.particles.splice(i, 1);
         }
     }
+
+    // Update floating texts
+    for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = state.floatingTexts[i];
+        ft.y -= 1.5; // Float up
+        ft.life -= 0.015; // Fade out slowly
+        if (ft.life <= 0) {
+            state.floatingTexts.splice(i, 1);
+        }
+    }
 }
 
 function draw() {
@@ -590,11 +632,17 @@ function draw() {
     // Draw Grid
     drawGrid();
 
+    // Draw Match VFX over grid
+    drawVFX();
+
     // Draw Hand (Bottom)
     drawHandArea();
 
     // Draw Particles
     drawParticles();
+
+    // Draw Floating Texts
+    drawFloatingTexts();
 
     // Draw Dragged Item
     if (state.drag.active) {
@@ -638,7 +686,7 @@ function drawGrid() {
                 }
 
                 // Check matches with simGrid
-                previewMatches = findMatchesInGrid(simGrid);
+                previewMatches = findMatchesInGrid(simGrid).removals;
             }
         }
     }
@@ -719,20 +767,34 @@ function drawGrid() {
 // Refactored findMatches to accept grid
 function findMatchesInGrid(gridToCheck) {
     const toRemove = [];
+    const reasons = []; // New block for visual VFX
     const addRemoval = (r, c, s, color) => {
         if (!toRemove.some(item => item.r === r && item.c === c && item.s === s)) {
             toRemove.push({ r, c, s, color });
         }
     };
 
-    // 1. Same Point Stack
+    // 1. Same Point Stack (Board Sweep Mechanic)
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
             const cell = gridToCheck[r][c];
             if (cell[0] && cell[1] && cell[2] && cell[0].color === cell[1].color && cell[1].color === cell[2].color) {
-                addRemoval(r, c, 0, cell[0].color);
-                addRemoval(r, c, 1, cell[1].color);
-                addRemoval(r, c, 2, cell[2].color);
+                const targetColor = cell[0].color;
+                
+                // Add reason for this trigger point
+                reasons.push({ type: 'stack', r: r, c: c, color: targetColor });
+
+                // Sweep entire board for this color
+                for (let sweepR = 0; sweepR < GRID_SIZE; sweepR++) {
+                    for (let sweepC = 0; sweepC < GRID_SIZE; sweepC++) {
+                        const sweepCell = gridToCheck[sweepR][sweepC];
+                        for (let s = 0; s < 3; s++) {
+                            if (sweepCell[s] && sweepCell[s].color === targetColor) {
+                                addRemoval(sweepR, sweepC, s, targetColor);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -752,6 +814,14 @@ function findMatchesInGrid(gridToCheck) {
                 if (cell.some(ring => ring && ring.color === colorIdx)) count++;
             }
             if (count === GRID_SIZE) {
+                // Add reason for this line
+                reasons.push({
+                    type: 'line',
+                    startR: line[0].r, startC: line[0].c,
+                    endR: line[2].r, endC: line[2].c,
+                    color: colorIdx
+                });
+
                 for (const pos of line) {
                     const cell = gridToCheck[pos.r][pos.c];
                     for (let s = 0; s < 3; s++) {
@@ -761,7 +831,7 @@ function findMatchesInGrid(gridToCheck) {
             }
         }
     }
-    return toRemove;
+    return { removals: toRemove, reasons: reasons };
 }
 
 // Updated original findMatches to use generic one
@@ -862,6 +932,81 @@ function drawParticles() {
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1.0;
+    }
+}
+
+function drawFloatingTexts() {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 36px Nunito, sans-serif';
+
+    for (const ft of state.floatingTexts) {
+        ctx.globalAlpha = ft.life; // Fade out
+
+        // Draw Outline (Stroke)
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#2c3e50'; // Dark stroke for contrast
+        ctx.strokeText(ft.text, ft.x, ft.y);
+
+        // Draw Fill
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x, ft.y);
+
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+function drawVFX() {
+    for (let i = 0; i < state.animations.length; i++) {
+        const anim = state.animations[i];
+        if (anim.type === 'line' && anim.progress > 0) {
+            const x1 = state.layout.gridOrigin.x + (anim.startC + 0.5) * state.layout.cellSize;
+            const y1 = state.layout.gridOrigin.y + (anim.startR + 0.5) * state.layout.cellSize;
+            const x2 = state.layout.gridOrigin.x + (anim.endC + 0.5) * state.layout.cellSize;
+            const y2 = state.layout.gridOrigin.y + (anim.endR + 0.5) * state.layout.cellSize;
+            
+            // Draw glowing line
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = COLORS[anim.color];
+            ctx.lineWidth = 14 * Math.min(1.0, anim.progress);
+            ctx.lineCap = 'round';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = COLORS[anim.color];
+            ctx.globalAlpha = Math.min(1.0, anim.progress);
+            ctx.stroke();
+            
+            // Draw inner intense core
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 4 * Math.min(1.0, anim.progress);
+            ctx.shadowBlur = 0;
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+        } else if (anim.type === 'stack' && anim.progress > 0) {
+            const x = state.layout.gridOrigin.x + (anim.c + 0.5) * state.layout.cellSize;
+            const y = state.layout.gridOrigin.y + (anim.r + 0.5) * state.layout.cellSize;
+            const radius = state.layout.cellSize * 0.8 * (1.5 - anim.progress); // Expands slightly
+            
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = COLORS[anim.color];
+            ctx.globalAlpha = Math.min(1.0, anim.progress) * 0.4;
+            ctx.fill();
+            
+            // Bright ring burst
+            ctx.beginPath();
+            ctx.arc(x, y, radius * 0.8, 0, Math.PI * 2);
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 4;
+            ctx.globalAlpha = Math.min(1.0, anim.progress);
+            ctx.stroke();
+
+            ctx.globalAlpha = 1.0;
+        }
     }
 }
 
