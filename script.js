@@ -278,25 +278,20 @@ function getDifficulty() {
 }
 
 function generatePiece() {
-    // Difficulty influences randomness
-    // Low diff: Mostly single rings, matching colors
-    // High diff: More rings per combo, mismatched colors
-
-    const difficulty = getDifficulty();
     const piece = [null, null, null];
     let hasRing = false;
 
     // Base probability to add a ring at size i
-    // Easy: 40%, Hard: 80% (Increased piece density pressure over time)
-    const baseProb = 0.4 + (difficulty * 0.4);
+    // Fixed at 60% since implicit difficulty is disabled
+    const baseProb = 0.6;
 
     // Explicit Difficulty: Available colors based on score
     const availableColorCount = state.score >= 10000 ? 5 : 4;
 
     // Color consistency
-    // Easy: High chance all rings in this combo share color
-    // Hard: High chance random colors
-    const consistentColor = Math.random() > (difficulty * 0.8); // Becomes rarer
+    // Since difficulty is fixed to 0, old logic `> (difficulty * 0.8)` meant 100% chance of same color.
+    // Changing this to a fixed, low chance (e.g. 15%) of being forced to the same color.
+    const consistentColor = Math.random() < 0.15;
     const baseColor = Math.floor(Math.random() * availableColorCount);
 
     while (!hasRing) {
