@@ -268,10 +268,13 @@ function fillHand() {
 }
 
 function getDifficulty() {
-    // 0 to 1 scaling over 5 minutes (300000ms)
-    const elapsed = Date.now() - state.difficultyStartTime;
-    const diff = Math.min(elapsed / 300000, 1.0);
-    return diff;
+    // Implicit time-based difficulty is temporarily disabled (returns 0) 
+    // to test if score-based explicit difficulty (addColor at 10k) is sufficient.
+
+    // const elapsed = Date.now() - state.difficultyStartTime;
+    // const diff = Math.min(elapsed / 300000, 1.0);
+
+    return 0;
 }
 
 function generatePiece() {
