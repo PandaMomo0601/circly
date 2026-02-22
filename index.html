@@ -37,10 +37,25 @@
                 <div class="modal-content">
                     <h2>SETTINGS</h2>
                     <div class="setting-row">
-                        <span>Background Music</span>
-                        <button id="sound-toggle-btn">ON</button>
+                        <span>Music</span>
+                        <label class="switch">
+                            <input type="checkbox" id="sound-toggle-checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
                     </div>
+                    <button id="settings-restart-btn" class="action-btn danger-btn">RESTART GAME</button>
                     <button id="close-settings-btn" class="action-btn">CLOSE</button>
+                </div>
+            </div>
+
+            <div id="confirm-modal" class="hidden">
+                <div class="modal-content">
+                    <h2>RESTART</h2>
+                    <p>Abandon current game?</p>
+                    <div class="btn-group">
+                        <button id="confirm-cancel-btn" class="action-btn">CANCEL</button>
+                        <button id="confirm-ok-btn" class="action-btn danger-btn">OK</button>
+                    </div>
                 </div>
             </div>
 

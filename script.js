@@ -200,7 +200,12 @@ const backBtn = document.getElementById('back-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
-const soundToggleBtn = document.getElementById('sound-toggle-btn');
+const soundToggleCheckbox = document.getElementById('sound-toggle-checkbox');
+const settingsRestartBtn = document.getElementById('settings-restart-btn');
+
+const confirmModal = document.getElementById('confirm-modal');
+const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+const confirmOkBtn = document.getElementById('confirm-ok-btn');
 
 // --- Initialization ---
 function init() {
@@ -231,7 +236,36 @@ function init() {
     backBtn.addEventListener('click', goHome);
     settingsBtn.addEventListener('click', openSettings);
     closeSettingsBtn.addEventListener('click', closeSettings);
-    soundToggleBtn.addEventListener('click', toggleSound);
+
+    // Checkbox uses 'change' event instead of 'click'
+    soundToggleCheckbox.addEventListener('change', toggleSound);
+
+    settingsRestartBtn.addEventListener('click', () => {
+        closeSettings();
+        confirmModal.classList.remove('hidden');
+    });
+
+    confirmCancelBtn.addEventListener('click', () => {
+        confirmModal.classList.add('hidden');
+    });
+
+    confirmOkBtn.addEventListener('click', () => {
+        confirmModal.classList.add('hidden');
+        clearSavedState();
+        resetGame();
+        // Force the app back into game state if they clicked restart from home screen settings
+        startScreenModal.classList.add('hidden');
+        scoreBoard.classList.remove('hidden');
+        backBtn.classList.remove('hidden');
+        state.started = true;
+    });
+
+    // Initial Preferences Check
+    const savedPrefs = localStorage.getItem('circly_prefs');
+    if (savedPrefs) {
+        sound.muted = JSON.parse(savedPrefs).muted;
+    }
+    soundToggleCheckbox.checked = !sound.muted; // Sync UI switch with state
 
     // Initial State Check
     if (localStorage.getItem('circly_savegame')) {
@@ -290,18 +324,16 @@ function closeSettings() {
 }
 
 function toggleSound() {
-    sound.muted = !sound.muted;
+    sound.muted = !soundToggleCheckbox.checked; // If checked, muted is false
+    localStorage.setItem('circly_prefs', JSON.stringify({ muted: sound.muted }));
+
     if (sound.muted) {
-        soundToggleBtn.textContent = 'OFF';
-        soundToggleBtn.classList.add('off');
         if (sound.bgmSource) {
             sound.bgmSource.stop();
             sound.bgmSource.disconnect();
             sound.bgmSource = null;
         }
     } else {
-        soundToggleBtn.textContent = 'ON';
-        soundToggleBtn.classList.remove('off');
         if (state.started) sound.startBGM(); // Only start playing if game is active
     }
 }
