@@ -282,8 +282,8 @@ function generatePiece() {
     let hasRing = false;
 
     // Base probability to add a ring at size i
-    // Fixed at 60% since implicit difficulty is disabled
-    const baseProb = 0.6;
+    // Fixed at 40% (original easy mode density) to keep early game pressure low
+    const baseProb = 0.4;
 
     // Explicit Difficulty: Available colors based on score
     const availableColorCount = state.score >= 10000 ? 5 : 4;
@@ -309,10 +309,11 @@ function generatePiece() {
     }
 
     // GUARANTEED TUTORIAL MECHANIC:
-    // For Round 1 only (first 3 pieces total), forcefully change any generated ring's color to Red.
+    // For the very first hand (when score is 0 and round is incremented to 2), 
+    // forcefully change any generated ring's color to Red.
     // This allows the player to easily learn the single-color line clear rule.
     // It does NOT force extra rings to spawn, preserving the slow-paced single-ring density of early game.
-    if (state.round === 1) {
+    if (state.score === 0 && state.round <= 2) {
         for (let i = 0; i < 3; i++) {
             if (piece[i] !== null) {
                 piece[i].color = 0; // Force Red
