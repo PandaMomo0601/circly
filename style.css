@@ -216,7 +216,7 @@ body {
     font-weight: 900;
     border-radius: 50px;
     cursor: pointer;
-    transition: transform 0.1s, margin-top 0.1s;
+    transition: transform 0.1s, box-shadow 0.1s;
     box-shadow: 0 8px 0 #00b35c,
         /* Solid bottom border for 3D effect */
         0 15px 20px rgba(0, 0, 0, 0.3);
@@ -228,6 +228,20 @@ body {
     transform: translateY(8px);
     box-shadow: 0 0px 0 #00b35c,
         0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+.privacy-link {
+    position: absolute;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: underline;
+    transition: color 0.2s;
+    z-index: 10;
+}
+
+.privacy-link:hover {
+    color: white;
 }
 
 #game-over-modal,

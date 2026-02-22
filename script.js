@@ -26,6 +26,7 @@ const sound = {
     bgmSource: null,
     bgmMuted: false,
     sfxMuted: false,
+    vibEnabled: true, // Native vibration toggle
     bgmBuffer: null,
 
     init() {
@@ -62,24 +63,28 @@ const sound = {
     },
 
     playPickup() {
+        this.vibrate('light');
         if (this.sfxMuted) return;
         // Softer sine blip
         this.playTone(500, 'sine', 0.1, 0.1, 0.01, 0.1);
     },
 
     playPlace() {
+        this.vibrate('light');
         if (this.sfxMuted) return;
         // Soft thud
         this.playTone(200, 'sine', 0.15, 0.15, 0.01, 0.2);
     },
 
     playError() {
+        this.vibrate('warning');
         if (this.sfxMuted) return;
         // Low hum instead of harsh saw
         this.playTone(100, 'triangle', 0.3, 0.1, 0.05, 0.2);
     },
 
     playClear(count) {
+        this.vibrate('heavy');
         if (this.sfxMuted) return;
         // Gentle major chord arpeggio
         const base = 300; // Lower base pitch
@@ -154,6 +159,13 @@ const sound = {
             this.bgmSource.disconnect();
             this.bgmSource = null;
         }
+    },
+
+    vibrate(type) {
+        if (!this.vibEnabled) return;
+        // Placeholder for `@capacitor/haptics`
+        // e.g., if (window.Capacitor) Haptics.impact({ style: type });
+        console.log(`[Haptics]: ${type} vibration triggered`);
     }
 };
 
@@ -202,6 +214,7 @@ const settingsModal = document.getElementById('settings-modal');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
 const bgmToggleCheckbox = document.getElementById('bgm-toggle-checkbox');
 const sfxToggleCheckbox = document.getElementById('sfx-toggle-checkbox');
+const vibToggleCheckbox = document.getElementById('vib-toggle-checkbox');
 const settingsRestartBtn = document.getElementById('settings-restart-btn');
 
 const confirmModal = document.getElementById('confirm-modal');
@@ -241,6 +254,7 @@ function init() {
     // Checkbox uses 'change' event instead of 'click'
     bgmToggleCheckbox.addEventListener('change', toggleBGM);
     sfxToggleCheckbox.addEventListener('change', toggleSFX);
+    vibToggleCheckbox.addEventListener('change', toggleVib);
 
     settingsRestartBtn.addEventListener('click', () => {
         closeSettings();
@@ -268,9 +282,11 @@ function init() {
         const parsed = JSON.parse(savedPrefs);
         if (parsed.bgmMuted !== undefined) sound.bgmMuted = parsed.bgmMuted;
         if (parsed.sfxMuted !== undefined) sound.sfxMuted = parsed.sfxMuted;
+        if (parsed.vibEnabled !== undefined) sound.vibEnabled = parsed.vibEnabled;
     }
     bgmToggleCheckbox.checked = !sound.bgmMuted; // Sync UI switch with state
     sfxToggleCheckbox.checked = !sound.sfxMuted;
+    vibToggleCheckbox.checked = sound.vibEnabled;
 
     // Initial State Check
     if (localStorage.getItem('circly_savegame')) {
@@ -354,10 +370,17 @@ function toggleSFX() {
     savePreferences();
 }
 
+function toggleVib() {
+    sound.vibEnabled = vibToggleCheckbox.checked;
+    savePreferences();
+    if (sound.vibEnabled) sound.vibrate('medium'); // Provide immediate feedback when toggled ON
+}
+
 function savePreferences() {
     localStorage.setItem('circly_prefs', JSON.stringify({
         bgmMuted: sound.bgmMuted,
-        sfxMuted: sound.sfxMuted
+        sfxMuted: sound.sfxMuted,
+        vibEnabled: sound.vibEnabled
     }));
 }
 
