@@ -1,0 +1,429 @@
+:root {
+    --bg-color: #2c3e50;
+    --text-color: #ecf0f1;
+    --accent-color: #1abc9c;
+    --modal-bg: rgba(44, 62, 80, 0.95);
+}
+
+* {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #1a1a2e;
+    /* Darker background for the dead space outside 9:16 */
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    touch-action: none;
+    user-select: none;
+    display: flex;
+    /* Center the game container */
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    /* Max width based on 9:16 ratio for 100vh height */
+    max-width: calc(100vh * (9 / 16));
+    height: 100%;
+    max-height: 100vh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    overflow: hidden;
+    background-color: #2c3e50;
+    /* The actual game background */
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    /* Separate it from the dark body */
+}
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Let clicks pass through to canvas unless on clickable elements */
+    z-index: 10;
+}
+
+.score-board {
+    position: absolute;
+    /* top will be dynamically set in JS to sit just above the grid */
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    transition: transform 0.1s, background 0.2s;
+    pointer-events: auto;
+    /* Buttons need clicks */
+}
+
+.icon-btn:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#settings-btn {
+    position: absolute;
+    top: calc(20px + env(safe-area-inset-top));
+    right: 20px;
+    z-index: 200;
+    /* Must be above #start-screen-modal (150) */
+    /* Always above everything except modals */
+}
+
+#back-btn {
+    /* Style as a pill instead of a circle for "❮ HOME" */
+    width: auto;
+    border-radius: 22px;
+    padding: 0 15px;
+    font-size: 14px;
+    font-weight: bold;
+    position: absolute;
+    left: 20px;
+    top: calc(20px + env(safe-area-inset-top));
+    z-index: 100;
+}
+
+#back-btn.hidden {
+    display: none;
+}
+
+.score-box {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px 20px;
+    border-radius: 10px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    min-width: 100px;
+}
+
+.score-box .label {
+    display: block;
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+}
+
+.score-box span[id] {
+    font-size: 24px;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+#gameCanvas {
+    /* Canvas will be sized by JS, but ensure it's block */
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.score-board.hidden {
+    display: none;
+}
+
+#start-screen-modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #2c3e50;
+    /* Matches game-container background exactly */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+    z-index: 150;
+}
+
+#start-screen-modal:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+.start-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    position: relative;
+    /* Anchor for absolute privacy link */
+}
+
+#start-screen-modal .game-title {
+    margin: 0;
+    /* Removed bottom margin since flex evenly spaces them now */
+    font-size: 15vw;
+    /* Adjusts nicely on mobile and desktop wrapper */
+    font-weight: 900;
+    color: #FFD700;
+    /* Gold/Yellow like block blast */
+    text-transform: uppercase;
+    text-shadow:
+        0px 5px 0px #cf9d00,
+        0px 10px 15px rgba(0, 0, 0, 0.4);
+    letter-spacing: 4px;
+}
+
+/* Fallback max-size for title if 15vw gets too huge on wide wrapped screens */
+@media (min-width: 600px) {
+    #start-screen-modal .game-title {
+        font-size: 80px;
+    }
+}
+
+#start-btn {
+    background: #00e676;
+    /* Vibrant Green */
+    color: #ffffff;
+    border: none;
+    padding: 20px 0;
+    width: 70%;
+    max-width: 300px;
+    font-size: 28px;
+    font-weight: 900;
+    border-radius: 50px;
+    cursor: pointer;
+    margin-top: 8vh;
+    /* Separate button from title */
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 0 8px 0 #00b35c,
+        /* Solid bottom border for 3D effect */
+        0 15px 20px rgba(0, 0, 0, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#start-btn:active {
+    transform: translateY(8px);
+    box-shadow: 0 0px 0 #00b35c,
+        0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+.privacy-link {
+    position: absolute;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: underline;
+    transition: color 0.2s;
+    z-index: 10;
+}
+
+.privacy-link:hover {
+    color: white;
+}
+
+#game-over-modal,
+#settings-modal,
+#confirm-modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--modal-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+    /* Enable clicks */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+    z-index: 300;
+    /* Ensure modals are always above EVERYTHING, including start screen (150) */
+}
+
+#game-over-modal:not(.hidden),
+#settings-modal:not(.hidden),
+#confirm-modal:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background: #34495e;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: none;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 300px;
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-content h2 {
+    margin: 0 0 20px 0;
+    font-size: 32px;
+    color: var(--accent-color);
+    text-shadow: none;
+}
+
+.modal-content p {
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* CSS Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #888;
+    transition: .4s;
+    border-radius: 34px;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+input:checked+.slider {
+    background-color: var(--accent-color);
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px var(--accent-color);
+}
+
+input:checked+.slider:before {
+    transform: translateX(26px);
+}
+
+#final-score {
+    font-size: 36px;
+    font-weight: bold;
+    color: white;
+}
+
+.action-btn {
+    background: var(--accent-color);
+    color: #000;
+    border: none;
+    padding: 15px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, background 0.2s;
+    box-shadow: 0 0 15px var(--accent-color);
+    text-transform: uppercase;
+    width: 100%;
+}
+
+.action-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.danger-btn {
+    background: #e74c3c;
+    color: white;
+    box-shadow: 0 0 15px #e74c3c;
+    margin-bottom: 0px;
+}
+
+#settings-restart-btn.hidden {
+    display: none;
+}
+
+.modal-divider {
+    border: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 30px 0;
+}
+
+#confirm-modal .danger-btn {
+    margin-bottom: 0;
+    /* Reset for flex group */
+}
+
+.btn-group {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+    justify-content: center;
+}

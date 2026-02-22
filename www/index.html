@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Color Rings (Classic Mix)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="ui-layer">
+            <button id="settings-btn" class="icon-btn">⚙️</button>
+            <button id="back-btn" class="icon-btn hidden">❮ HOME</button>
+
+            <div id="start-screen-modal">
+                <div class="start-content">
+                    <h1 class="game-title">CIRCLY</h1>
+                    <button id="start-btn" class="action-btn">PLAY</button>
+                    <a href="privacy.html" class="privacy-link" target="_blank">Privacy Policy</a>
+                </div>
+            </div>
+
+            <div class="score-board hidden">
+
+                <div class="score-box">
+                    <span class="label">SCORE</span>
+                    <span id="score">0</span>
+                </div>
+                <div class="score-box">
+                    <span class="label">BEST</span>
+                    <span id="best-score">0</span>
+                </div>
+            </div>
+
+            <div id="settings-modal" class="hidden">
+                <div class="modal-content">
+                    <h2>SETTINGS</h2>
+                    <div class="setting-row">
+                        <span>Music</span>
+                        <label class="switch">
+                            <input type="checkbox" id="bgm-toggle-checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <span>Sounds</span>
+                        <label class="switch">
+                            <input type="checkbox" id="sfx-toggle-checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <span>Vibration</span>
+                        <label class="switch">
+                            <input type="checkbox" id="vib-toggle-checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <button id="settings-restart-btn" class="action-btn danger-btn">RESTART GAME</button>
+                    <hr class="modal-divider">
+                    <button id="close-settings-btn" class="action-btn">CLOSE</button>
+                </div>
+            </div>
+
+            <div id="confirm-modal" class="hidden">
+                <div class="modal-content">
+                    <h2>RESTART</h2>
+                    <p>Abandon current game?</p>
+                    <div class="btn-group">
+                        <button id="confirm-cancel-btn" class="action-btn">CANCEL</button>
+                        <button id="confirm-ok-btn" class="action-btn danger-btn">OK</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="game-over-modal" class="hidden">
+                <div class="modal-content">
+                    <h2>GAME OVER</h2>
+                    <p>Score: <span id="final-score">0</span></p>
+                    <button id="restart-btn" class="action-btn">PLAY AGAIN</button>
+                </div>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "circly",
+  "version": "1.0.0",
+  "description": "我自己做的一个小游戏",
+  "main": "anim_reasons.js",
+  "scripts": {
+    "build": "mkdir -p www && cp *.html *.css script.js anim_reasons.js anim_score.js www/",
+    "sync": "npm run build && npx cap sync"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PandaMomo0601/circly.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PandaMomo0601/circly/issues"
+  },
+  "homepage": "https://github.com/PandaMomo0601/circly#readme",
+  "dependencies": {
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/haptics": "^8.0.0",
+    "@capacitor/ios": "^8.1.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.1.0"
+  }
+}
