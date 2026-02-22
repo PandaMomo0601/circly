@@ -30,12 +30,13 @@ body {
 }
 
 #game-container {
-    position: relative;
     width: 100%;
-    /* Max width based on 9:16 ratio for 100vh height */
-    max-width: calc(100vh * (9/16));
+    /* Max width for desktop/tablet but full on mobile */
+    max-width: 600px;
     height: 100%;
-    max-height: 100vh;
+    position: relative;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
     overflow: hidden;
     background-color: #2c3e50;
     /* The actual game background */
@@ -89,7 +90,7 @@ body {
 
 #settings-btn {
     position: absolute;
-    top: 20px;
+    top: calc(20px + env(safe-area-inset-top));
     right: 20px;
     z-index: 200;
     /* Must be above #start-screen-modal (150) */
@@ -105,7 +106,7 @@ body {
     font-weight: bold;
     position: absolute;
     left: 20px;
-    top: 20px;
+    top: calc(20px + env(safe-area-inset-top));
     z-index: 100;
 }
 
