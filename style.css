@@ -239,7 +239,7 @@ body {
 
 .privacy-link {
     position: absolute;
-    bottom: calc(20px + env(safe-area-inset-bottom));
+    bottom: calc(85px + env(safe-area-inset-bottom));
     font-size: 14px;
     color: rgba(255, 255, 255, 0.5);
     text-decoration: underline;

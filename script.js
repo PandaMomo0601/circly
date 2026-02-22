@@ -638,7 +638,7 @@ function resize() {
     state.layout.handSpacing = renderW / 3;
     state.layout.handOrigin = {
         x: offsetX + (state.layout.handSpacing / 2),
-        y: offsetY + (renderH * 0.85) // Bottom 15%
+        y: offsetY + (renderH * 0.82) // Moved up slightly to accommodate AdMob Banner
     };
 }
 
