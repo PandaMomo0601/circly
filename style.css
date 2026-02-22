@@ -12,24 +12,35 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-body, html {
+body {
     margin: 0;
     padding: 0;
-    width: 100%;
-    height: 100%;
     overflow: hidden;
-    background-color: var(--bg-color);
-    font-family: 'Nunito', 'Segoe UI Rounded', 'Segoe UI', sans-serif;
-    color: var(--text-color);
+    background-color: #1a1a2e;
+    /* Darker background for the dead space outside 9:16 */
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    touch-action: none;
+    user-select: none;
+    display: flex;
+    /* Center the game container */
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
 
 #game-container {
     position: relative;
     width: 100%;
+    /* Max width based on 9:16 ratio for 100vh height */
+    max-width: calc(100vh * (9/16));
     height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    max-height: 100vh;
+    overflow: hidden;
+    background-color: #2c3e50;
+    /* The actual game background */
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    /* Separate it from the dark body */
 }
 
 #ui-layer {
@@ -38,7 +49,8 @@ body, html {
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: none; /* Let clicks pass through to canvas unless on clickable elements */
+    pointer-events: none;
+    /* Let clicks pass through to canvas unless on clickable elements */
     z-index: 10;
 }
 
@@ -92,7 +104,7 @@ body, html {
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--modal-bg);
+    background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -108,32 +120,58 @@ body, html {
     visibility: visible;
 }
 
+.start-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
 #start-screen-modal .game-title {
-    margin: 0 0 40px 0;
-    font-size: 64px;
+    margin: 0 0 80px 0;
+    font-size: 15vw;
+    /* Adjusts nicely on mobile and desktop wrapper */
     font-weight: 900;
-    color: white;
-    text-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
-    letter-spacing: 2px;
+    color: #FFD700;
+    /* Gold/Yellow like block blast */
+    text-transform: uppercase;
+    text-shadow:
+        0px 5px 0px #cf9d00,
+        0px 10px 15px rgba(0, 0, 0, 0.4);
+    letter-spacing: 4px;
+}
+
+/* Fallback max-size for title if 15vw gets too huge on wide wrapped screens */
+@media (min-width: 600px) {
+    #start-screen-modal .game-title {
+        font-size: 80px;
+    }
 }
 
 #start-btn {
-    background: var(--accent-color);
-    color: #000;
+    background: #00e676;
+    /* Vibrant Green */
+    color: #ffffff;
     border: none;
-    padding: 15px 60px;
-    font-size: 24px;
-    font-weight: bold;
+    padding: 20px 0;
+    width: 70%;
+    max-width: 300px;
+    font-size: 28px;
+    font-weight: 900;
     border-radius: 50px;
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
-    box-shadow: 0 0 20px var(--accent-color);
+    transition: transform 0.1s, margin-top 0.1s;
+    box-shadow: 0 8px 0 #00b35c,
+        /* Solid bottom border for 3D effect */
+        0 15px 20px rgba(0, 0, 0, 0.3);
     text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 #start-btn:active {
-    transform: scale(0.95);
-    box-shadow: 0 0 5px var(--accent-color);
+    transform: translateY(8px);
+    box-shadow: 0 0px 0 #00b35c,
+        0 5px 10px rgba(0, 0, 0, 0.3);
 }
 
 #game-over-modal {
@@ -146,7 +184,8 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
-    pointer-events: auto; /* Enable clicks */
+    pointer-events: auto;
+    /* Enable clicks */
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s;
@@ -168,8 +207,15 @@ body, html {
 }
 
 @keyframes popIn {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .modal-content h2 {
