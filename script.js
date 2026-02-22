@@ -193,9 +193,13 @@ const bestScoreEl = document.getElementById('best-score');
 const gameOverModal = document.getElementById('game-over-modal');
 const finalScoreEl = document.getElementById('final-score');
 const restartBtn = document.getElementById('restart-btn');
-const startScreenModal = document.getElementById('start-screen-modal');
 const startBtn = document.getElementById('start-btn');
 const scoreBoard = document.querySelector('.score-board');
+const backBtn = document.getElementById('back-btn');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsModal = document.getElementById('settings-modal');
+const closeSettingsBtn = document.getElementById('close-settings-btn');
+const soundToggleBtn = document.getElementById('sound-toggle-btn');
 
 // --- Initialization ---
 function init() {
@@ -216,9 +220,24 @@ function init() {
     canvas.addEventListener('touchend', handleEnd);
 
     // Setup UI
-    restartBtn.addEventListener('click', resetGame);
+    restartBtn.addEventListener('click', () => {
+        clearSavedState();
+        resetGame();
+    });
     startBtn.addEventListener('click', startGame);
     bestScoreEl.textContent = state.bestScore;
+
+    backBtn.addEventListener('click', goHome);
+    settingsBtn.addEventListener('click', openSettings);
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    soundToggleBtn.addEventListener('click', toggleSound);
+
+    // Initial State Check
+    if (localStorage.getItem('circly_savegame')) {
+        startBtn.textContent = 'CONTINUE';
+    } else {
+        startBtn.textContent = 'PLAY';
+    }
 
     // Resize & Loop
     window.addEventListener('resize', resize);
@@ -231,7 +250,95 @@ function startGame() {
     startScreenModal.classList.add('hidden');
     scoreBoard.classList.remove('hidden');
     state.started = true;
-    resetGame();
+
+    if (localStorage.getItem('circly_savegame')) {
+        loadGameState();
+        // Ensure sounds play if we load into a round
+        if (sound.ctx && !sound.muted) sound.startBGM();
+    } else {
+        resetGame();
+    }
+}
+
+function handleGameOver() {
+    state.gameOver = true;
+    finalScoreEl.textContent = state.score;
+    gameOverModal.classList.remove('hidden');
+    clearSavedState(); // Wipe save when user fails naturally
+}
+function goHome() {
+    state.started = false; // Pauses logic
+    startScreenModal.classList.remove('hidden');
+    scoreBoard.classList.add('hidden');
+    startBtn.textContent = 'CONTINUE';
+    if (sound.bgmSource) {
+        sound.bgmSource.stop();
+        sound.bgmSource.disconnect();
+        sound.bgmSource = null;
+    }
+}
+
+function openSettings() {
+    settingsModal.classList.remove('hidden');
+}
+
+function closeSettings() {
+    settingsModal.classList.add('hidden');
+}
+
+function toggleSound() {
+    sound.muted = !sound.muted;
+    if (sound.muted) {
+        soundToggleBtn.textContent = 'OFF';
+        soundToggleBtn.classList.add('off');
+        if (sound.bgmSource) {
+            sound.bgmSource.stop();
+            sound.bgmSource.disconnect();
+            sound.bgmSource = null;
+        }
+    } else {
+        soundToggleBtn.textContent = 'ON';
+        soundToggleBtn.classList.remove('off');
+        if (state.started) sound.startBGM(); // Only start playing if game is active
+    }
+}
+
+function saveGameState() {
+    if (!state.started || state.gameOver) return;
+    const saveData = {
+        grid: state.grid,
+        hands: state.hands,
+        score: state.score,
+        round: state.round
+    };
+    localStorage.setItem('circly_savegame', JSON.stringify(saveData));
+}
+
+function loadGameState() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('circly_savegame'));
+        if (saved) {
+            state.grid = saved.grid;
+            state.hands = saved.hands;
+            state.score = saved.score;
+            state.round = saved.round;
+            state.gameOver = false;
+            state.particles = [];
+            state.floatingTexts = [];
+            state.animations = [];
+            updateScore(0); // Refresh UI
+            updateRound();
+            gameOverModal.classList.add('hidden');
+        }
+    } catch (e) {
+        console.error("Failed to load save state", e);
+        resetGame();
+    }
+}
+
+function clearSavedState() {
+    localStorage.removeItem('circly_savegame');
+    startBtn.textContent = 'PLAY';
 }
 
 function resetGame() {
@@ -252,6 +359,7 @@ function resetGame() {
 
     updateScore(0);
     fillHand();
+    saveGameState();
 
     gameOverModal.classList.add('hidden');
 }
@@ -263,6 +371,7 @@ function fillHand() {
     while (state.hands.length < 3) {
         state.hands.push(generatePiece());
     }
+    saveGameState();
 }
 
 function getDifficulty() {
@@ -501,36 +610,24 @@ function processTurn() {
 
         // Refill hand if empty logic usually happens after drop, 
         // but if we match, we might want to delay slightly or just do it.
-        // Also check if hand is empty now?
-    } else {
-        // No match
-
+        if (sound.ctx) {
+            sound.playTone(400, 'sine', 0.1, 0.05); // Clean combo sound
+        }
     }
 
-    // Refill hand if empty
-    let handEmpty = true;
-    for (let h of state.hands) {
-        if (h !== null) handEmpty = false;
-    }
-    if (handEmpty) {
+    // Check if hand needs refilling after matches (in case a match cleared the board allowing a stuck piece to be placed)
+    const handIsEmpty = state.hands.every(h => h === null);
+    if (handIsEmpty) {
         fillHand();
     }
 
-    // Check Game Over
-    // We need to check if ANY of the remaining hand items can fit ANYWHERE.
+    // Since combinations can clear the board, check if game over
     if (checkGameOverCondition()) {
-        state.gameOver = true;
-        sound.playGameOver();
-        setTimeout(() => {
-            gameOverModal.classList.remove('hidden');
-            finalScoreEl.textContent = state.score;
-            if (state.score > state.bestScore) {
-                state.bestScore = state.score;
-                localStorage.setItem('colorRings_best', state.bestScore);
-                bestScoreEl.textContent = state.bestScore;
-            }
-        }, 1000);
+        handleGameOver();
+    } else {
+        saveGameState(); // Save state after resolving matches
     }
+    return true;
 }
 
 // Old matches logic removed/replaced by specific implementation

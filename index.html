@@ -11,6 +11,8 @@
 <body>
     <div id="game-container">
         <div id="ui-layer">
+            <button id="settings-btn" class="icon-btn">⚙️</button>
+
             <div id="start-screen-modal">
                 <div class="start-content">
                     <h1 class="game-title">Circly</h1>
@@ -19,6 +21,7 @@
             </div>
 
             <div class="score-board hidden">
+                <button id="back-btn" class="icon-btn">❮ HOME</button>
 
                 <div class="score-box">
                     <span class="label">SCORE</span>
@@ -27,6 +30,17 @@
                 <div class="score-box">
                     <span class="label">BEST</span>
                     <span id="best-score">0</span>
+                </div>
+            </div>
+
+            <div id="settings-modal" class="hidden">
+                <div class="modal-content">
+                    <h2>SETTINGS</h2>
+                    <div class="setting-row">
+                        <span>Background Music</span>
+                        <button id="sound-toggle-btn">ON</button>
+                    </div>
+                    <button id="close-settings-btn" class="action-btn">CLOSE</button>
                 </div>
             </div>
 

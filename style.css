@@ -61,6 +61,50 @@ body {
     display: flex;
     justify-content: space-around;
     pointer-events: none;
+    z-index: 10;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    transition: transform 0.1s, background 0.2s;
+    pointer-events: auto;
+    /* Buttons need clicks */
+}
+
+.icon-btn:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#settings-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    /* Always above everything except modals */
+}
+
+#back-btn {
+    /* Style as a pill instead of a circle for "❮ HOME" */
+    width: auto;
+    border-radius: 22px;
+    padding: 0 15px;
+    font-size: 14px;
+    font-weight: bold;
+    position: absolute;
+    left: 20px;
+    top: 0;
 }
 
 .score-box {
@@ -180,7 +224,8 @@ body {
         0 5px 10px rgba(0, 0, 0, 0.3);
 }
 
-#game-over-modal {
+#game-over-modal,
+#settings-modal {
     position: absolute;
     top: 0;
     left: 0;
@@ -197,7 +242,8 @@ body {
     transition: opacity 0.3s ease, visibility 0.3s;
 }
 
-#game-over-modal:not(.hidden) {
+#game-over-modal:not(.hidden),
+#settings-modal:not(.hidden) {
     opacity: 1;
     visibility: visible;
 }
@@ -210,6 +256,7 @@ body {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     border: none;
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 300px;
 }
 
 @keyframes popIn {
@@ -236,13 +283,44 @@ body {
     margin-bottom: 30px;
 }
 
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#sound-toggle-btn {
+    background: var(--accent-color);
+    color: #000;
+    border: none;
+    padding: 8px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    min-width: 60px;
+}
+
+#sound-toggle-btn.off {
+    background: #e74c3c;
+    color: white;
+}
+
+#sound-toggle-btn:active {
+    transform: scale(0.9);
+}
+
 #final-score {
     font-size: 36px;
     font-weight: bold;
     color: white;
 }
 
-#restart-btn {
+.action-btn {
     background: var(--accent-color);
     color: #000;
     border: none;
@@ -254,9 +332,10 @@ body {
     transition: transform 0.1s, box-shadow 0.1s;
     box-shadow: 0 0 15px var(--accent-color);
     text-transform: uppercase;
+    width: 100%;
 }
 
-#restart-btn:active {
+.action-btn:active {
     transform: scale(0.95);
     box-shadow: 0 0 5px var(--accent-color);
 }
