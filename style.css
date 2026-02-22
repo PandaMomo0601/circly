@@ -247,6 +247,8 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s;
+    z-index: 300;
+    /* Ensure modals are always above EVERYTHING, including start screen (150) */
 }
 
 #game-over-modal:not(.hidden),
