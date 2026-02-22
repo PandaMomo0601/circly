@@ -250,6 +250,7 @@ function startGame() {
     sound.init(); // Unlock AudioContext legally via user click
     startScreenModal.classList.add('hidden');
     scoreBoard.classList.remove('hidden');
+    backBtn.classList.remove('hidden');
     state.started = true;
 
     if (localStorage.getItem('circly_savegame')) {
@@ -271,6 +272,7 @@ function goHome() {
     state.started = false; // Pauses logic
     startScreenModal.classList.remove('hidden');
     scoreBoard.classList.add('hidden');
+    backBtn.classList.add('hidden');
     startBtn.textContent = 'CONTINUE';
     if (sound.bgmSource) {
         sound.bgmSource.stop();
@@ -474,6 +476,11 @@ function resize() {
         x: offsetX + (renderW - gridAreaSize) / 2,
         y: offsetY + (renderH * 0.25) // Start at 25% height
     };
+
+    // Dynamically position the scoreBoard just above the grid
+    // Max(80, ...) ensures it doesn't overlap the 60px height of the top navigation buttons (Back / Settings).
+    const scoreBoardTop = Math.max(80, state.layout.gridOrigin.y - 100);
+    scoreBoard.style.top = scoreBoardTop + 'px';
 
     // Hand area: Bottom
     state.layout.handSpacing = renderW / 3;
