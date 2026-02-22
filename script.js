@@ -307,6 +307,19 @@ function generatePiece() {
         }
         // If we failed to generate any ring (rare but possible), retry loop
     }
+
+    // GUARANTEED TUTORIAL MECHANIC:
+    // For Round 1 only (first 3 pieces total), forcefully change any generated ring's color to Red.
+    // This allows the player to easily learn the single-color line clear rule.
+    // It does NOT force extra rings to spawn, preserving the slow-paced single-ring density of early game.
+    if (state.round === 1) {
+        for (let i = 0; i < 3; i++) {
+            if (piece[i] !== null) {
+                piece[i].color = 0; // Force Red
+            }
+        }
+    }
+
     return piece;
 }
 
@@ -580,6 +593,7 @@ function clearMatches(matches, reasons = []) {
             c: m.c,
             s: m.s,
             color: m.color,
+            delayFrames: 24, // Delay shrinking by 400ms to let lightbeams play first
             progress: 1.0
         });
 
@@ -638,6 +652,13 @@ function update() {
     // Update animations
     for (let i = state.animations.length - 1; i >= 0; i--) {
         const anim = state.animations[i];
+
+        // Handle delayed animations (e.g. rings waiting for lightbeams to finish)
+        if (anim.delayFrames > 0) {
+            anim.delayFrames--;
+            continue;
+        }
+
         anim.progress -= 0.05; // 20 frames to clear
         if (anim.progress <= 0) {
             state.animations.splice(i, 1);
