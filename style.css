@@ -142,6 +142,9 @@ body {
 #gameCanvas {
     /* Canvas will be sized by JS, but ensure it's block */
     display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
 }
