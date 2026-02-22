@@ -239,11 +239,29 @@ const adManager = {
                 await AdMob.initialize({ initializeForTesting: true });
                 this.initialized = true;
                 console.log("[AdMob] Initialized");
+                this.showBanner();
                 this.prepareInterstitial();
             } catch (e) {
                 console.error("[AdMob] Init failed", e);
                 alert("AdMob Init Failed: " + JSON.stringify(e));
             }
+        }
+    },
+    async showBanner() {
+        if (!this.initialized) return;
+        const { AdMob } = window.Capacitor.Plugins;
+        const options = {
+            adId: 'ca-app-pub-3940256099942544/2934735716', // Google Test Banner ID
+            adSize: 'BANNER',
+            position: 'BOTTOM_CENTER',
+            margin: 0,
+            isTesting: true
+        };
+        try {
+            await AdMob.showBanner(options);
+            console.log("[AdMob] Banner Displayed");
+        } catch (e) {
+            console.error("[AdMob] Banner failed", e);
         }
     },
     async prepareInterstitial() {
