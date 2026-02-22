@@ -381,8 +381,14 @@ input:checked+.slider:before {
     background: #e74c3c;
     color: white;
     box-shadow: 0 0 15px #e74c3c;
-    margin-bottom: 15px;
-    /* Spacing between stacked buttons */
+    margin-bottom: 0px;
+}
+
+.modal-divider {
+    border: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 30px 0;
 }
 
 #confirm-modal .danger-btn {

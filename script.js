@@ -21,30 +21,25 @@ const ANIMATION_SPEED = 0.2; // 0-1 lerp factor
 const PARTICLE_COUNT = 20;
 
 // --- Sound Manager ---
-class SoundManager {
-    constructor() {
-        this.ctx = null;
-        this.muted = false;
-        this.bgmNodes = [];
-        this.bgmSource = null;
-    }
+const sound = {
+    ctx: null,
+    bgmSource: null,
+    bgmMuted: false,
+    sfxMuted: false,
+    bgmBuffer: null,
 
     init() {
-        console.log('SoundManager.init() called');
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            if (this.ctx.state === 'suspended') {
-                this.ctx.resume().then(() => this.startBGM());
-            } else {
-                this.startBGM();
-            }
-        } else if (this.ctx.state === 'suspended') {
-            this.ctx.resume().then(() => this.startBGM());
+            this.generateProceduralCanonInD(); // Placeholder for BGM generation
         }
-    }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
 
     playTone(freq, type, duration, vol = 0.1, attack = 0.01, release = 0.1) {
-        if (this.muted || !this.ctx) return;
+        if (this.sfxMuted || !this.ctx) return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
 
@@ -64,24 +59,28 @@ class SoundManager {
 
         osc.start(t);
         osc.stop(t + duration + release + 0.1); // add buffer to stop
-    }
+    },
 
     playPickup() {
+        if (this.sfxMuted) return;
         // Softer sine blip
         this.playTone(500, 'sine', 0.1, 0.1, 0.01, 0.1);
-    }
+    },
 
     playPlace() {
+        if (this.sfxMuted) return;
         // Soft thud
         this.playTone(200, 'sine', 0.15, 0.15, 0.01, 0.2);
-    }
+    },
 
     playError() {
+        if (this.sfxMuted) return;
         // Low hum instead of harsh saw
         this.playTone(100, 'triangle', 0.3, 0.1, 0.05, 0.2);
-    }
+    },
 
     playClear(count) {
+        if (this.sfxMuted) return;
         // Gentle major chord arpeggio
         const base = 300; // Lower base pitch
         const chord = [0, 4, 7, 12]; // Major intervals
@@ -91,10 +90,10 @@ class SoundManager {
                 this.playTone(note, 'sine', 0.4, 0.1, 0.05, 0.5);
             }, i * 80);
         }
-    }
+    },
 
     playGameOver() {
-        if (this.muted || !this.ctx) return;
+        if (this.sfxMuted || !this.ctx) return;
         this.stopBGM();
 
         const osc = this.ctx.createOscillator();
@@ -111,12 +110,11 @@ class SoundManager {
         gain.connect(this.ctx.destination);
         osc.start();
         osc.stop(t + 2.0 + 0.1);
-    }
+    },
 
-    startBGM() {
-        if (this.bgmSource || this.muted || !this.ctx) return;
-
-        // Procedural White Noise Generator (Library/Radio static vibe)
+    // This function is a placeholder. In a real game, you'd generate or load actual BGM.
+    generateProceduralCanonInD() {
+        if (this.bgmBuffer) return; // Already generated
         const bufferSize = this.ctx.sampleRate * 2; // 2 seconds of noise 
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -125,9 +123,13 @@ class SoundManager {
         for (let i = 0; i < bufferSize; i++) {
             data[i] = Math.random() * 2 - 1;
         }
+        this.bgmBuffer = buffer;
+    },
 
+    startBGM() {
+        if (!this.bgmBuffer || this.bgmMuted || this.bgmSource) return;
         this.bgmSource = this.ctx.createBufferSource();
-        this.bgmSource.buffer = buffer;
+        this.bgmSource.buffer = this.bgmBuffer;
         this.bgmSource.loop = true;
 
         // Pass noise through a lowpass filter to make it sound like muffled wind or deep static
@@ -144,7 +146,7 @@ class SoundManager {
         gain.connect(this.ctx.destination);
 
         this.bgmSource.start();
-    }
+    },
 
     stopBGM() {
         if (this.bgmSource) {
@@ -153,9 +155,7 @@ class SoundManager {
             this.bgmSource = null;
         }
     }
-}
-
-const sound = new SoundManager();
+};
 
 // --- State ---
 const state = {
@@ -200,7 +200,8 @@ const backBtn = document.getElementById('back-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
-const soundToggleCheckbox = document.getElementById('sound-toggle-checkbox');
+const bgmToggleCheckbox = document.getElementById('bgm-toggle-checkbox');
+const sfxToggleCheckbox = document.getElementById('sfx-toggle-checkbox');
 const settingsRestartBtn = document.getElementById('settings-restart-btn');
 
 const confirmModal = document.getElementById('confirm-modal');
@@ -238,7 +239,8 @@ function init() {
     closeSettingsBtn.addEventListener('click', closeSettings);
 
     // Checkbox uses 'change' event instead of 'click'
-    soundToggleCheckbox.addEventListener('change', toggleSound);
+    bgmToggleCheckbox.addEventListener('change', toggleBGM);
+    sfxToggleCheckbox.addEventListener('change', toggleSFX);
 
     settingsRestartBtn.addEventListener('click', () => {
         closeSettings();
@@ -263,9 +265,12 @@ function init() {
     // Initial Preferences Check
     const savedPrefs = localStorage.getItem('circly_prefs');
     if (savedPrefs) {
-        sound.muted = JSON.parse(savedPrefs).muted;
+        const parsed = JSON.parse(savedPrefs);
+        if (parsed.bgmMuted !== undefined) sound.bgmMuted = parsed.bgmMuted;
+        if (parsed.sfxMuted !== undefined) sound.sfxMuted = parsed.sfxMuted;
     }
-    soundToggleCheckbox.checked = !sound.muted; // Sync UI switch with state
+    bgmToggleCheckbox.checked = !sound.bgmMuted; // Sync UI switch with state
+    sfxToggleCheckbox.checked = !sound.sfxMuted;
 
     // Initial State Check
     if (localStorage.getItem('circly_savegame')) {
@@ -290,7 +295,7 @@ function startGame() {
     if (localStorage.getItem('circly_savegame')) {
         loadGameState();
         // Ensure sounds play if we load into a round
-        if (sound.ctx && !sound.muted) sound.startBGM();
+        if (sound.ctx && !sound.bgmMuted) sound.startBGM();
     } else {
         resetGame();
     }
@@ -317,17 +322,23 @@ function goHome() {
 
 function openSettings() {
     settingsModal.classList.remove('hidden');
+    // Hide Restart button if not actively playing
+    if (!state.started || state.gameOver) {
+        settingsRestartBtn.classList.add('hidden');
+    } else {
+        settingsRestartBtn.classList.remove('hidden');
+    }
 }
 
 function closeSettings() {
     settingsModal.classList.add('hidden');
 }
 
-function toggleSound() {
-    sound.muted = !soundToggleCheckbox.checked; // If checked, muted is false
-    localStorage.setItem('circly_prefs', JSON.stringify({ muted: sound.muted }));
+function toggleBGM() {
+    sound.bgmMuted = !bgmToggleCheckbox.checked;
+    savePreferences();
 
-    if (sound.muted) {
+    if (sound.bgmMuted) {
         if (sound.bgmSource) {
             sound.bgmSource.stop();
             sound.bgmSource.disconnect();
@@ -336,6 +347,18 @@ function toggleSound() {
     } else {
         if (state.started) sound.startBGM(); // Only start playing if game is active
     }
+}
+
+function toggleSFX() {
+    sound.sfxMuted = !sfxToggleCheckbox.checked;
+    savePreferences();
+}
+
+function savePreferences() {
+    localStorage.setItem('circly_prefs', JSON.stringify({
+        bgmMuted: sound.bgmMuted,
+        sfxMuted: sound.sfxMuted
+    }));
 }
 
 function saveGameState() {
