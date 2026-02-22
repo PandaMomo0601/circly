@@ -91,7 +91,8 @@ body {
     position: absolute;
     top: 20px;
     right: 20px;
-    z-index: 100;
+    z-index: 200;
+    /* Must be above #start-screen-modal (150) */
     /* Always above everything except modals */
 }
 
@@ -382,6 +383,10 @@ input:checked+.slider:before {
     color: white;
     box-shadow: 0 0 15px #e74c3c;
     margin-bottom: 0px;
+}
+
+#settings-restart-btn.hidden {
+    display: none;
 }
 
 .modal-divider {
