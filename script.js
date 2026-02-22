@@ -229,6 +229,50 @@ const confirmModal = document.getElementById('confirm-modal');
 const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
 const confirmOkBtn = document.getElementById('confirm-ok-btn');
 
+// --- AdMob Native Manager ---
+const adManager = {
+    initialized: false,
+    async init() {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            try {
+                const { AdMob } = window.Capacitor.Plugins;
+                await AdMob.initialize();
+                this.initialized = true;
+                console.log("[AdMob] Initialized");
+                this.prepareInterstitial();
+            } catch (e) {
+                console.error("[AdMob] Init failed", e);
+            }
+        }
+    },
+    async prepareInterstitial() {
+        if (!this.initialized) return;
+        const { AdMob } = window.Capacitor.Plugins;
+        // User's provided Test Interstitial ID
+        const options = {
+            adId: 'ca-app-pub-3940256099942544/4411468910',
+            isTesting: true // Enforce test mode for safety
+        };
+        try {
+            await AdMob.prepareInterstitial(options);
+            console.log("[AdMob] Interstitial Prepared");
+        } catch (e) {
+            console.error("[AdMob] Prepare failed", e);
+        }
+    },
+    async showInterstitial() {
+        if (!this.initialized) return;
+        const { AdMob } = window.Capacitor.Plugins;
+        try {
+            await AdMob.showInterstitial();
+            // Pre-load the next one immediately after showing
+            this.prepareInterstitial();
+        } catch (e) {
+            console.error("[AdMob] Show failed", e);
+        }
+    }
+};
+
 // --- Initialization ---
 function init() {
     // Setup Grid
@@ -299,6 +343,9 @@ function init() {
     // Initial State Check
     startBtn.textContent = 'PLAY';
 
+    // Boot AdMob Engine
+    adManager.init();
+
     // Resize & Loop
     window.addEventListener('resize', resize);
     resize();
@@ -326,6 +373,9 @@ function handleGameOver() {
     finalScoreEl.textContent = state.score;
     gameOverModal.classList.remove('hidden');
     clearSavedState(); // Wipe save when user fails naturally
+
+    // Trigger AdMob Interstitial Ad (Will only fire on native, safely ignored on web)
+    adManager.showInterstitial();
 }
 function goHome() {
     state.started = false; // Pauses logic
