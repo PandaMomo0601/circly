@@ -236,12 +236,13 @@ const adManager = {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
             try {
                 const { AdMob } = window.Capacitor.Plugins;
-                await AdMob.initialize();
+                await AdMob.initialize({ initializeForTesting: true });
                 this.initialized = true;
                 console.log("[AdMob] Initialized");
                 this.prepareInterstitial();
             } catch (e) {
                 console.error("[AdMob] Init failed", e);
+                alert("AdMob Init Failed: " + JSON.stringify(e));
             }
         }
     },
@@ -258,6 +259,7 @@ const adManager = {
             console.log("[AdMob] Interstitial Prepared");
         } catch (e) {
             console.error("[AdMob] Prepare failed", e);
+            alert("AdMob Prepare Failed: " + JSON.stringify(e));
         }
     },
     async showInterstitial() {
@@ -269,6 +271,7 @@ const adManager = {
             this.prepareInterstitial();
         } catch (e) {
             console.error("[AdMob] Show failed", e);
+            alert("AdMob Show Failed: " + JSON.stringify(e));
         }
     }
 };
