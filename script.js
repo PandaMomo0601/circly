@@ -159,6 +159,7 @@ const sound = new SoundManager();
 
 // --- State ---
 const state = {
+    started: false,
     grid: [], // 3x3 grid
     hands: [], // 3 bottom slots
     score: 0,
@@ -192,20 +193,22 @@ const bestScoreEl = document.getElementById('best-score');
 const gameOverModal = document.getElementById('game-over-modal');
 const finalScoreEl = document.getElementById('final-score');
 const restartBtn = document.getElementById('restart-btn');
+const startScreenModal = document.getElementById('start-screen-modal');
+const startBtn = document.getElementById('start-btn');
+const scoreBoard = document.querySelector('.score-board');
 
 // --- Initialization ---
 function init() {
-    console.log('SoundManager.init() called');
     // Setup Grid
     state.grid = Array(GRID_SIZE).fill(null).map(() =>
         Array(GRID_SIZE).fill(null).map(() => [null, null, null])
     );
 
     // Setup Input
-    canvas.addEventListener('mousedown', (e) => { sound.init(); handleStart(e); });
+    canvas.addEventListener('mousedown', handleStart);
     canvas.addEventListener('mousemove', handleMove);
     canvas.addEventListener('mouseup', handleEnd);
-    canvas.addEventListener('touchstart', (e) => { sound.init(); handleStart(e.touches[0]); });
+    canvas.addEventListener('touchstart', (e) => handleStart(e.touches[0]));
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault(); // Prevent scroll
         handleMove(e.touches[0]);
@@ -214,26 +217,21 @@ function init() {
 
     // Setup UI
     restartBtn.addEventListener('click', resetGame);
+    startBtn.addEventListener('click', startGame);
     bestScoreEl.textContent = state.bestScore;
-
-    // Start Game
-    resetGame();
-
-    // Global audio unlock (Safari/Mobile fix)
-    const unlockAudio = () => {
-        sound.init();
-        document.removeEventListener('mousedown', unlockAudio);
-        document.removeEventListener('touchstart', unlockAudio);
-        document.removeEventListener('keydown', unlockAudio);
-    };
-    document.addEventListener('mousedown', unlockAudio);
-    document.addEventListener('touchstart', unlockAudio);
-    document.addEventListener('keydown', unlockAudio);
 
     // Resize & Loop
     window.addEventListener('resize', resize);
     resize();
     requestAnimationFrame(loop);
+}
+
+function startGame() {
+    sound.init(); // Unlock AudioContext legally via user click
+    startScreenModal.classList.add('hidden');
+    scoreBoard.classList.remove('hidden');
+    state.started = true;
+    resetGame();
 }
 
 function resetGame() {
@@ -381,7 +379,7 @@ function getCanvasPos(e) {
 }
 
 function handleStart(e) {
-    if (state.gameOver) return;
+    if (!state.started || state.gameOver) return; // Halt input if game not started or game over
     const pos = e.clientX ? getCanvasPos(e) : { x: e.pageX, y: e.pageY };
 
     // Check if clicked on a hand item
@@ -650,6 +648,8 @@ function loop() {
 }
 
 function update() {
+    if (!state.started) return;
+
     // Update animations
     for (let i = state.animations.length - 1; i >= 0; i--) {
         const anim = state.animations[i];
