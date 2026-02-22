@@ -193,6 +193,7 @@ const bestScoreEl = document.getElementById('best-score');
 const gameOverModal = document.getElementById('game-over-modal');
 const finalScoreEl = document.getElementById('final-score');
 const restartBtn = document.getElementById('restart-btn');
+const startScreenModal = document.getElementById('start-screen-modal');
 const startBtn = document.getElementById('start-btn');
 const scoreBoard = document.querySelector('.score-board');
 const backBtn = document.getElementById('back-btn');
