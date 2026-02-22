@@ -325,29 +325,33 @@ function generatePiece() {
 // --- Layout & Resize ---
 // --- Layout & Resize ---
 function resize() {
-    // Force 9:16 Aspect Ratio Logic
-    const windowRatio = window.innerWidth / window.innerHeight;
+    const parent = canvas.parentElement;
+    const cw = parent.clientWidth;
+    const ch = parent.clientHeight;
+
+    // Force 9:16 Aspect Ratio Logic within the container
+    const windowRatio = cw / ch;
     const targetRatio = 9 / 16;
 
     let renderW, renderH;
 
     if (windowRatio > targetRatio) {
-        // Window is wider than 9:16, limit width based on height
-        renderH = window.innerHeight;
+        // Container is wider than 9:16
+        renderH = ch;
         renderW = renderH * targetRatio;
     } else {
-        // Window is taller/narrower, limit height based on width
-        renderW = window.innerWidth;
+        // Container is taller/narrower
+        renderW = cw;
         renderH = renderW / targetRatio;
     }
 
-    // Set canvas dimensions
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Set canvas internal resolution to match container
+    canvas.width = cw;
+    canvas.height = ch;
 
     // Center the render area
-    const offsetX = (window.innerWidth - renderW) / 2;
-    const offsetY = (window.innerHeight - renderH) / 2;
+    const offsetX = (cw - renderW) / 2;
+    const offsetY = (ch - renderH) / 2;
 
     state.layout.renderRect = { x: offsetX, y: offsetY, w: renderW, h: renderH };
 
