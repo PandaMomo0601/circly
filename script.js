@@ -289,11 +289,7 @@ function init() {
     vibToggleCheckbox.checked = sound.vibEnabled;
 
     // Initial State Check
-    if (localStorage.getItem('circly_savegame')) {
-        startBtn.textContent = 'CONTINUE';
-    } else {
-        startBtn.textContent = 'PLAY';
-    }
+    startBtn.textContent = 'PLAY';
 
     // Resize & Loop
     window.addEventListener('resize', resize);
@@ -328,7 +324,6 @@ function goHome() {
     startScreenModal.classList.remove('hidden');
     scoreBoard.classList.add('hidden');
     backBtn.classList.add('hidden');
-    startBtn.textContent = 'CONTINUE';
     if (sound.bgmSource) {
         sound.bgmSource.stop();
         sound.bgmSource.disconnect();
