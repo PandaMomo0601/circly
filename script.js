@@ -255,7 +255,7 @@ const adManager = {
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
             margin: 0,
-            isTesting: true
+            isTesting: false
         };
         try {
             await AdMob.showBanner(options);
@@ -270,7 +270,7 @@ const adManager = {
         // User's Production Interstitial ID
         const options = {
             adId: 'ca-app-pub-5798121521319194/4356281315',
-            isTesting: true // Enforce test mode for safety
+            isTesting: false // Enforce test mode for safety
         };
         try {
             await AdMob.prepareInterstitial(options);
