@@ -251,7 +251,7 @@ const adManager = {
         if (!this.initialized) return;
         const { AdMob } = window.Capacitor.Plugins;
         const options = {
-            adId: 'ca-app-pub-3940256099942544/2934735716', // Google Test Banner ID
+            adId: 'ca-app-pub-5798121521319194/4067818342', // User's Production Banner ID
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
             margin: 0,
@@ -267,9 +267,9 @@ const adManager = {
     async prepareInterstitial() {
         if (!this.initialized) return;
         const { AdMob } = window.Capacitor.Plugins;
-        // User's provided Test Interstitial ID
+        // User's Production Interstitial ID
         const options = {
-            adId: 'ca-app-pub-3940256099942544/4411468910',
+            adId: 'ca-app-pub-5798121521319194/4356281315',
             isTesting: true // Enforce test mode for safety
         };
         try {
