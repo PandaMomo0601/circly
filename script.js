@@ -235,7 +235,22 @@ const adManager = {
     async init() {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
             try {
-                const { AdMob } = window.Capacitor.Plugins;
+                const { AdMob, Device } = window.Capacitor.Plugins;
+                
+                // Request App Tracking Transparency authorization (iOS 14+)
+                if (Device) {
+                    const info = await Device.getInfo();
+                    if (info.platform === 'ios') {
+                        try {
+                            // This triggers the native ATT prompt before initializing the SDK
+                            await AdMob.requestTrackingAuthorization();
+                            console.log("[AdMob] Tracking Authorization Requested");
+                        } catch (attError) {
+                            console.log("[AdMob] ATT Request not supported or failed", attError);
+                        }
+                    }
+                }
+
                 await AdMob.initialize({ initializeForTesting: true });
                 this.initialized = true;
                 console.log("[AdMob] Initialized");
@@ -243,7 +258,7 @@ const adManager = {
                 this.prepareInterstitial();
             } catch (e) {
                 console.error("[AdMob] Init failed", e);
-                alert("AdMob Init Failed: " + JSON.stringify(e));
+                // Removed alert() to prevent UI blocking on launch failure
             }
         }
     },
@@ -277,7 +292,7 @@ const adManager = {
             console.log("[AdMob] Interstitial Prepared");
         } catch (e) {
             console.error("[AdMob] Prepare failed", e);
-            alert("AdMob Prepare Failed: " + JSON.stringify(e));
+            // Removed alert() to prevent UI blocking
         }
     },
     async showInterstitial() {
@@ -289,7 +304,7 @@ const adManager = {
             this.prepareInterstitial();
         } catch (e) {
             console.error("[AdMob] Show failed", e);
-            alert("AdMob Show Failed: " + JSON.stringify(e));
+            // Removed alert() to prevent UI blocking
         }
     }
 };
