@@ -248,7 +248,7 @@ const adManager = {
                     }
                 }
 
-                await AdMob.initialize({ initializeForTesting: false });
+                await AdMob.initialize({ initializeForTesting: true });
                 this.initialized = true;
                 console.log("[AdMob] Initialized");
                 this.showBanner();
@@ -263,11 +263,11 @@ const adManager = {
         if (!this.initialized) return;
         const { AdMob } = window.Capacitor.Plugins;
         const options = {
-            adId: 'ca-app-pub-5798121521319194/4067818342', // User's Production Banner ID
+            adId: 'ca-app-pub-3940256099942544/2934735716', // Google provided Banner Test ID
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
             margin: 0,
-            isTesting: false
+            isTesting: true
         };
         try {
             await AdMob.showBanner(options);
@@ -279,10 +279,10 @@ const adManager = {
     async prepareInterstitial() {
         if (!this.initialized) return;
         const { AdMob } = window.Capacitor.Plugins;
-        // User's Production Interstitial ID
+        // Google provided Interstitial Test ID
         const options = {
-            adId: 'ca-app-pub-5798121521319194/4356281315',
-            isTesting: false // Enforce test mode for safety
+            adId: 'ca-app-pub-3940256099942544/4411468910',
+            isTesting: true
         };
         try {
             await AdMob.prepareInterstitial(options);
