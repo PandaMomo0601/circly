@@ -243,21 +243,29 @@ const adManager = {
                         // This triggers the native ATT prompt before initializing the SDK
                         console.log("[AdMob] Triggering ATT Prompt...");
                         await AdMob.requestTrackingAuthorization();
-                        console.log("[AdMob] ATT Prompt completed. Waiting 1.5s for UI to settle...");
-                        await new Promise(resolve => setTimeout(resolve, 1500));
                     } catch (attError) {
-                        console.log("[AdMob] ATT Request not supported or failed", attError);
+                        console.log("[AdMob] ATT Request denied or failed", attError);
                     }
+                    // Crucial: Wait 1.5s REGARDLESS of whether the user accepted or denied
+                    // This prevents the native dialog dismissal from racing with initialize()
+                    console.log("[AdMob] ATT Prompt settled. Waiting 1.5s...");
+                    await new Promise(resolve => setTimeout(resolve, 1500));
                 }
 
                 await AdMob.initialize({ initializeForTesting: true });
+                
+                // Add Listeners for continuous ad flow
+                AdMob.addListener('admob.interstitial.dismiss', () => {
+                    console.log("[AdMob] Interstitial Dismissed. Preparing next...");
+                    this.prepareInterstitial();
+                });
+                
                 this.initialized = true;
                 console.log("[AdMob] Initialized");
                 this.showBanner();
                 this.prepareInterstitial();
             } catch (e) {
                 console.error("[AdMob] Init failed", e);
-                // Removed alert() to prevent UI blocking on launch failure
             }
         }
     },
@@ -290,8 +298,10 @@ const adManager = {
             await AdMob.prepareInterstitial(options);
             console.log("[AdMob] Interstitial Prepared");
         } catch (e) {
-            console.error("[AdMob] Prepare failed", e);
-            // Removed alert() to prevent UI blocking
+            console.error("[AdMob] Prepare failed. Retrying in 10s...", e);
+            setTimeout(() => {
+                if(this.initialized) this.prepareInterstitial();
+            }, 10000);
         }
     },
     async showInterstitial() {
@@ -299,11 +309,11 @@ const adManager = {
         const { AdMob } = window.Capacitor.Plugins;
         try {
             await AdMob.showInterstitial();
-            // Pre-load the next one immediately after showing
-            this.prepareInterstitial();
+            // Do NOT prepare here. Preparation happens via event listeners set up in init()
         } catch (e) {
             console.error("[AdMob] Show failed", e);
-            // Removed alert() to prevent UI blocking
+            // If it failed to show, try to prepare another one for next time
+            this.prepareInterstitial();
         }
     }
 };
