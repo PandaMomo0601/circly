@@ -235,23 +235,20 @@ const adManager = {
     async init() {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
             try {
-                const { AdMob, Device } = window.Capacitor.Plugins;
-                
+                const { AdMob } = window.Capacitor.Plugins;
+
                 // Request App Tracking Transparency authorization (iOS 14+)
-                if (Device) {
-                    const info = await Device.getInfo();
-                    if (info.platform === 'ios') {
-                        try {
-                            // This triggers the native ATT prompt before initializing the SDK
-                            await AdMob.requestTrackingAuthorization();
-                            console.log("[AdMob] Tracking Authorization Requested");
-                        } catch (attError) {
-                            console.log("[AdMob] ATT Request not supported or failed", attError);
-                        }
+                if (window.Capacitor.getPlatform() === 'ios') {
+                    try {
+                        // This triggers the native ATT prompt before initializing the SDK
+                        await AdMob.requestTrackingAuthorization();
+                        console.log("[AdMob] Tracking Authorization Requested");
+                    } catch (attError) {
+                        console.log("[AdMob] ATT Request not supported or failed", attError);
                     }
                 }
 
-                await AdMob.initialize({ initializeForTesting: true });
+                await AdMob.initialize({ initializeForTesting: false });
                 this.initialized = true;
                 console.log("[AdMob] Initialized");
                 this.showBanner();
