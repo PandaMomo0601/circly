@@ -241,8 +241,10 @@ const adManager = {
                 if (window.Capacitor.getPlatform() === 'ios') {
                     try {
                         // This triggers the native ATT prompt before initializing the SDK
+                        console.log("[AdMob] Triggering ATT Prompt...");
                         await AdMob.requestTrackingAuthorization();
-                        console.log("[AdMob] Tracking Authorization Requested");
+                        console.log("[AdMob] ATT Prompt completed. Waiting 1.5s for UI to settle...");
+                        await new Promise(resolve => setTimeout(resolve, 1500));
                     } catch (attError) {
                         console.log("[AdMob] ATT Request not supported or failed", attError);
                     }
