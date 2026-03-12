@@ -240,6 +240,10 @@ const adManager = {
                 // Request App Tracking Transparency authorization (iOS 14+)
                 if (window.Capacitor.getPlatform() === 'ios') {
                     try {
+                        // Wait 1.5s for the view hierarchy to settle on real devices before triggering ATT
+                        console.log("[AdMob] Waiting 1.5s before triggering ATT Prompt...");
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+
                         // This triggers the native ATT prompt before initializing the SDK
                         console.log("[AdMob] Triggering ATT Prompt...");
                         await AdMob.requestTrackingAuthorization();
