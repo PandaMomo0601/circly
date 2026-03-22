@@ -7,9 +7,30 @@ exports.main = async (event, context) => {
     const openid = wxContext.OPENID;
     const score = event.score;
 
-    const nickname = event.nickname || 'Unknown Player';
-
     if (typeof score !== 'number') return { error: 'Invalid score' };
+
+    let nickname = typeof event.nickname === 'string' ? event.nickname.trim() : '';
+    if (!nickname) {
+        nickname = 'Unknown Player';
+    } else {
+        try {
+            const secRes = await cloud.openapi.security.msgSecCheck({
+                openid,
+                scene: 1,
+                version: 2,
+                content: nickname,
+                nickname,
+            });
+            if (secRes.errCode != null && secRes.errCode !== 0) {
+                return { error: 'content_sec_check_failed', errMsg: secRes.errMsg || '' };
+            }
+            if (secRes.result && secRes.result.suggest === 'risky') {
+                return { error: 'content_not_allowed' };
+            }
+        } catch (e) {
+            return { error: 'content_sec_check_failed', errMsg: e.errMsg || String(e.message || e) };
+        }
+    }
 
     // Get Beijing Time Date String
     const now = new Date();

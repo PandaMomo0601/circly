@@ -214,10 +214,6 @@ function drawStartScreen() {
     ctx.fillStyle = '#2980b9';
     roundRect(ctx, lbBtn.x, lbBtn.y + 6, lbBtn.w, lbBtn.h, lbBtn.radius, true, false);
     lbBtn.draw(ctx);
-    
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('Privacy Policy', cw / 2, ch - 50);
 }
 
 function drawGameScreen() {
