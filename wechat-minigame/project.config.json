@@ -1,0 +1,64 @@
+{
+    "description": "项目配置文件",
+    "setting": {
+        "urlCheck": false,
+        "es6": true,
+        "postcss": true,
+        "minified": true,
+        "newFeature": true,
+        "compileWorklet": false,
+        "uglifyFileName": false,
+        "uploadWithSourceMap": true,
+        "enhance": false,
+        "packNpmManually": false,
+        "packNpmRelationList": [],
+        "minifyWXSS": true,
+        "minifyWXML": true,
+        "localPlugins": false,
+        "condition": false,
+        "swc": false,
+        "disableSWC": true,
+        "babelSetting": {
+            "ignore": [],
+            "disablePlugins": [],
+            "outputPath": ""
+        },
+        "disableUseStrict": false,
+        "useCompilerPlugins": false
+    },
+    "cloudfunctionRoot": "cloudfunctions/",
+    "compileType": "game",
+    "libVersion": "latest",
+    "appid": "wx094e9e1db2f2bbc2",
+    "projectname": "quickstart",
+    "condition": {
+        "search": {
+            "current": -1,
+            "list": []
+        },
+        "conversation": {
+            "current": -1,
+            "list": []
+        },
+        "game": {
+            "currentL": -1,
+            "list": []
+        },
+        "miniprogram": {
+            "current": -1,
+            "list": []
+        }
+    },
+    "simulatorPluginLibVersion": {},
+    "packOptions": {
+        "ignore": [
+            {
+                "type": "folder",
+                "value": "cloudfunctions"
+            }
+        ],
+        "include": []
+    },
+    "isGameTourist": false,
+    "editorSetting": {}
+}
