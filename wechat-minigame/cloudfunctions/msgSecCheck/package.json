@@ -1,0 +1,9 @@
+{
+  "name": "msgSecCheck",
+  "version": "1.0.0",
+  "description": "Content security check for user-generated nicknames",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

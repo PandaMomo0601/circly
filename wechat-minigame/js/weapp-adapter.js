@@ -51,10 +51,12 @@ module.exports =
 	module.exports = {
 	  WebSocket: _WebSocket
 	};
-	if (navigator == null) {
-	  navigator = {};
-	  navigator.userAgent = 'WeApp';
-	}
+	try {
+		var _nav = typeof navigator !== 'undefined' ? navigator : (typeof GameGlobal !== 'undefined' ? GameGlobal.navigator : null);
+		if (!_nav) { _nav = {}; }
+		if (!_nav.userAgent) { _nav.userAgent = 'WeApp'; }
+		if (typeof GameGlobal !== 'undefined' && GameGlobal.navigator !== _nav) { GameGlobal.navigator = _nav; }
+	} catch (e) {}
 
 /***/ },
 /* 1 */

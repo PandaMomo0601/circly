@@ -6,7 +6,7 @@ const menuButtonInfo = wx.getMenuButtonBoundingClientRect(); // The Capsule posi
 const pixelRatio = windowInfo.pixelRatio;
 
 // Setup main canvas
-const canvas = window.canvas || wx.createCanvas();
+const canvas = (typeof window !== 'undefined' && window.canvas) ? window.canvas : wx.createCanvas();
 const ctx = canvas.getContext('2d');
 canvas.width = windowInfo.windowWidth * pixelRatio;
 canvas.height = windowInfo.windowHeight * pixelRatio;
@@ -91,28 +91,53 @@ resize();
 function resize() {
     const cw = windowInfo.windowWidth;
     const ch = windowInfo.windowHeight;
+
+    // === ANCHOR + SCALE ADAPTIVE LAYOUT ===
+    // Grid + Hand are ONE centered block. No letterboxing.
+
     state.layout.renderRect = { x: 0, y: 0, w: cw, h: ch };
-    
-    state.layout.topBarY = safeTop + 10;
-    state.layout.scoreY = state.layout.topBarY + 54;
-    
-    // Bottom offset from safe boundary
-    const bottomSafeArea = windowInfo.safeArea ? (ch - windowInfo.safeArea.bottom) : 0;
-    state.layout.handOriginY = ch - bottomSafeArea - 60; // Deck is 60px above bottom lip
-    
-    const availableGridSpace = state.layout.handOriginY - (state.layout.scoreY + 75);
-    const maxGridWidth = cw * 0.9;
-    const gridAreaSize = Math.min(maxGridWidth, availableGridSpace);
-    
+
+    // --- ANCHOR: TOP ---
+    state.layout.topBarY = safeTop + 6;
+
+    // Score panel anchored below top bar
+    const scoreZoneTop = state.layout.topBarY + 50;
+    const scoreZoneHeight = 65;
+    state.layout.scoreY = scoreZoneTop;
+
+    // --- Available center zone (between score panel and bottom safe area) ---
+    const bottomInset = windowInfo.safeArea ? (ch - windowInfo.safeArea.bottom) : 0;
+    const centerZoneTop = scoreZoneTop + scoreZoneHeight + 15;
+    const centerZoneBottom = ch - bottomInset - 20;
+    const centerZoneHeight = centerZoneBottom - centerZoneTop;
+
+    // --- Grid + Hand treated as ONE block ---
+    // Total block height = gridSize + handGap + handHeight
+    const handGap = 30;   // gap between grid bottom and hand center
+    const handItemH = 20; // visual half-height of hand pieces
+
+    // Max grid size constrained by both width and available vertical space
+    const maxGridW = cw * 0.9;
+    const maxGridH = centerZoneHeight - handGap - handItemH * 2;
+    const gridAreaSize = Math.min(maxGridW, maxGridH);
+
     state.layout.cellSize = gridAreaSize / GRID_SIZE;
+
+    // Total block height
+    const blockH = gridAreaSize + handGap + handItemH * 2;
+    // Center the block vertically
+    const blockTop = centerZoneTop + (centerZoneHeight - blockH) / 2;
+
     state.layout.gridOrigin = {
         x: (cw - gridAreaSize) / 2,
-        y: state.layout.scoreY + 75 + (availableGridSpace - gridAreaSize) / 2
+        y: blockTop
     };
+
+    // Hand sits right below grid
     state.layout.handSpacing = cw / 3;
     state.layout.handOrigin = {
         x: state.layout.handSpacing / 2,
-        y: state.layout.handOriginY
+        y: blockTop + gridAreaSize + handGap + handItemH
     };
 
     if (state.grid.length === 0) {
@@ -162,32 +187,33 @@ function draw() {
 function drawStartScreen() {
     const cw = windowInfo.windowWidth;
     const ch = windowInfo.windowHeight;
+    const centerX = cw / 2;
 
-    // Dark body background for letterboxing effect
-    ctx.fillStyle = '#1a1a2e';
+    // Full screen dark background
+    ctx.fillStyle = '#2c3e50';
     ctx.fillRect(0, 0, cw, ch);
 
-    // Title
-    ctx.fillStyle = '#FFD700';
-    ctx.font = '900 56px Arial, sans-serif';
+    // Title with shadow layers — vertically centered in the top half
+    const titleY = ch * 0.30;
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#cf9d00';
-    ctx.shadowOffsetY = 5;
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#cf9d00';
+    ctx.font = '900 56px Arial, sans-serif';
+    ctx.fillText('\u65e0\u5c3d\u5f69\u73af', centerX, titleY + 5);
+    ctx.shadowColor = 'rgba(255, 215, 0, 0.3)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 0;
+    ctx.fillStyle = '#FFD700';
+    ctx.fillText('\u65e0\u5c3d\u5f69\u73af', centerX, titleY);
+    ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
-    ctx.fillText('无尽彩环', cw / 2, ch * 0.25);
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowOffsetY = 10;
-    ctx.shadowBlur = 15;
-    ctx.fillText('无尽彩环', cw / 2, ch * 0.25);
-    ctx.shadowColor = 'transparent'; // Reset shadow
-    
-    // Play Button (Vibrant Green)
-    const playBtn = new CanvasButton(cw/2 - 120, ch * 0.45, 240, 60, 'PLAY', '#00e676', '#ffffff', () => {
+
+    // Buttons centered vertically
+    const btnY = ch * 0.52;
+    const playBtn = new CanvasButton(centerX - 120, btnY, 240, 60, 'PLAY', '#00e676', '#ffffff', () => {
         state.screen = 'GAME';
         state.started = true;
         state.gameOver = false;
-        
-        // Resume check: only generate a new hand if hands are empty and grid is completely clear.
         let isEmpty = true;
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
@@ -200,65 +226,62 @@ function drawStartScreen() {
             fillHand();
         }
     }, 30);
-    
-    // Draw button shadow
     ctx.fillStyle = '#00b35c';
-    roundRect(ctx, playBtn.x, playBtn.y + 8, playBtn.w, playBtn.h, playBtn.radius, true, false);
+    roundRect(ctx, playBtn.x, playBtn.y + 6, playBtn.w, playBtn.h, playBtn.radius, true, false);
     playBtn.draw(ctx);
 
-    const lbBtn = new CanvasButton(cw/2 - 100, ch * 0.45 + 100, 200, 56, 'RANKING', '#3498db', '#ffffff', () => {
+    const lbBtn = new CanvasButton(centerX - 100, btnY + 90, 200, 56, 'RANKING', '#3498db', '#ffffff', () => {
         state.screen = 'LEADERBOARD';
         fetchLeaderboard();
     }, 28);
-    // Button shadow
     ctx.fillStyle = '#2980b9';
-    roundRect(ctx, lbBtn.x, lbBtn.y + 6, lbBtn.w, lbBtn.h, lbBtn.radius, true, false);
+    roundRect(ctx, lbBtn.x, lbBtn.y + 5, lbBtn.w, lbBtn.h, lbBtn.radius, true, false);
     lbBtn.draw(ctx);
+
+    // Settings Button
+    drawSettingsButton(cw - 56, state.layout.topBarY);
 }
 
 function drawGameScreen() {
     const cw = windowInfo.windowWidth;
+    const centerX = cw / 2;
 
-    // Draw Score and Best Score boxes
+    // Score boxes
     const boxW = 100;
-    const boxH = 65;
-    
-    // SCORE Box
+    const boxH = 60;
+    const scoreBoxY = state.layout.scoreY;
+
     ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    roundRect(ctx, cw/2 - 105, state.layout.scoreY, boxW, boxH, 10, true, false);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '12px sans-serif';
+    roundRect(ctx, centerX - 105, scoreBoxY, boxW, boxH, 10, true, false);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.globalAlpha = 0.7;
-    ctx.fillText('SCORE', cw/2 - 105 + boxW/2, state.layout.scoreY + 20);
-    ctx.globalAlpha = 1.0;
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText(Math.floor(state.score), cw/2 - 105 + boxW/2, state.layout.scoreY + 45);
+    ctx.textBaseline = 'top';
+    ctx.fillText('SCORE', centerX - 105 + boxW/2, scoreBoxY + 10);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText(Math.floor(state.score), centerX - 105 + boxW/2, scoreBoxY + 30);
 
-    // BEST Box
     ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    roundRect(ctx, cw/2 + 5, state.layout.scoreY, boxW, boxH, 10, true, false);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '12px sans-serif';
+    roundRect(ctx, centerX + 5, scoreBoxY, boxW, boxH, 10, true, false);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.globalAlpha = 0.7;
-    ctx.fillText('BEST', cw/2 + 5 + boxW/2, state.layout.scoreY + 20);
-    ctx.globalAlpha = 1.0;
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText(Math.floor(state.highScore), cw/2 + 5 + boxW/2, state.layout.scoreY + 45);
+    ctx.textBaseline = 'top';
+    ctx.fillText('BEST', centerX + 5 + boxW/2, scoreBoxY + 10);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText(Math.floor(state.highScore), centerX + 5 + boxW/2, scoreBoxY + 30);
 
-    // Settings Button (⚙)
-    const settingsBtn = new CanvasButton(cw - 56, state.layout.topBarY, 40, 40, '⚙️', 'rgba(255,255,255,0.1)', '#ffffff', () => {
-        state.settingsOpen = true;
-    }, 20);
-    settingsBtn.draw(ctx);
+    // Settings Button (right side)
+    drawSettingsButton(cw - 56, state.layout.topBarY);
 
-    // Back / Home Button
-    const backBtn = new CanvasButton(16, state.layout.topBarY, 82, 40, '❮ HOME', 'rgba(255,255,255,0.1)', '#ffffff', () => {
+    // Back / Home Button (left side)
+    const backBtn = new CanvasButton(16, state.layout.topBarY, 82, 36, '\u276e HOME', 'rgba(255,255,255,0.1)', '#ffffff', () => {
         state.screen = 'START';
         state.started = false;
-    }, 20);
-    ctx.font = '14px sans-serif'; 
+    }, 18);
+    ctx.font = 'bold 13px sans-serif';
     backBtn.draw(ctx);
 
     // Draw core game elements
@@ -322,8 +345,10 @@ function drawSettingsModal() {
     ctx.fillStyle = 'rgba(44, 62, 80, 0.95)';
     ctx.fillRect(0, 0, cw, ch);
 
+    // Hide RESTART when opened from home (matches original: settingsRestartBtn hidden on home)
+    const showRestart = state.started && !state.gameOver;
     const mw = cw * 0.85;
-    const mh = 420;
+    const mh = showRestart ? 420 : 340;
     const mx = (cw - mw) / 2;
     const my = ch / 2 - mh / 2;
 
@@ -353,20 +378,24 @@ function drawSettingsModal() {
     drawToggle(my + 160, 'Sounds', s.sounds, () => { s.sounds = !s.sounds; });
     drawToggle(my + 220, 'Vibration', s.haptics, () => { s.haptics = !s.haptics; });
 
-    const restartBtn = new CanvasButton(mx + 30, my + 290, mw - 60, 44, 'RESTART GAME', '#e74c3c', '#ffffff', () => {
-        state.confirmModal = true;
-    }, 22);
-    restartBtn.draw(ctx);
+    let nextY = my + 280;
+    if (showRestart) {
+        const restartBtn = new CanvasButton(mx + 30, nextY, mw - 60, 44, 'RESTART GAME', '#e74c3c', '#ffffff', () => {
+            state.confirmModal = true;
+        }, 22);
+        restartBtn.draw(ctx);
+        nextY += 70;
+    }
 
     // draw divider line
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(mx + 30, my + 350);
-    ctx.lineTo(mx + mw - 30, my + 350);
+    ctx.moveTo(mx + 30, nextY);
+    ctx.lineTo(mx + mw - 30, nextY);
     ctx.stroke();
 
-    const closeBtn = new CanvasButton(mx + 30, my + 365, mw - 60, 44, 'CLOSE', '#1abc9c', '#000000', () => {
+    const closeBtn = new CanvasButton(mx + 30, nextY + 15, mw - 60, 44, 'CLOSE', '#1abc9c', '#000000', () => {
         state.settingsOpen = false;
     }, 22);
     closeBtn.draw(ctx);
@@ -402,13 +431,17 @@ function drawConfirmModal() {
     cancelBtn.draw(ctx);
 
     const okBtn = new CanvasButton(mx + mw/2 + 10, my + 130, mw/2 - 30, 44, 'OK', '#e74c3c', '#ffffff', () => {
+        // Match original: confirmOkBtn restarts and enters GAME, not home
         state.score = 0;
         state.round = 0;
         state.grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null).map(() => [null, null, null]));
+        state.hands = [null, null, null];
+        fillHand();
         state.confirmModal = false;
         state.settingsOpen = false;
-        state.started = false;
-        state.screen = 'START';
+        state.screen = 'GAME';
+        state.started = true;
+        state.gameOver = false;
     }, 22);
     okBtn.draw(ctx);
 }
@@ -584,6 +617,48 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
     if (stroke) {
         ctx.stroke();
     }
+}
+
+// --- Settings Gear Icon (pure Canvas, no emoji) ---
+function drawSettingsButton(x, y) {
+    const size = 36;
+    const btn = new CanvasButton(x, y, size, size, '', 'rgba(255,255,255,0.1)', '#ffffff', () => {
+        state.settingsOpen = true;
+    }, size / 2);
+    btn.draw(ctx);
+
+    // Draw a gear icon in the center of the button
+    const cx = x + size / 2;
+    const cy = y + size / 2;
+    const outerR = 10;
+    const innerR = 5;
+    const teeth = 6;
+
+    ctx.save();
+    ctx.strokeStyle = '#ffffff';
+    ctx.fillStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < teeth; i++) {
+        const a1 = (i / teeth) * Math.PI * 2 - Math.PI / 2;
+        const a2 = ((i + 0.35) / teeth) * Math.PI * 2 - Math.PI / 2;
+        const a3 = ((i + 0.65) / teeth) * Math.PI * 2 - Math.PI / 2;
+        const a4 = ((i + 1) / teeth) * Math.PI * 2 - Math.PI / 2;
+        if (i === 0) ctx.moveTo(cx + outerR * Math.cos(a1), cy + outerR * Math.sin(a1));
+        ctx.lineTo(cx + outerR * Math.cos(a2), cy + outerR * Math.sin(a2));
+        ctx.lineTo(cx + (innerR + 1) * Math.cos(a2), cy + (innerR + 1) * Math.sin(a2));
+        ctx.lineTo(cx + (innerR + 1) * Math.cos(a3), cy + (innerR + 1) * Math.sin(a3));
+        ctx.lineTo(cx + outerR * Math.cos(a3), cy + outerR * Math.sin(a3));
+        ctx.lineTo(cx + outerR * Math.cos(a4), cy + outerR * Math.sin(a4));
+    }
+    ctx.closePath();
+    ctx.fill();
+    // Center hole
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.fill();
+    ctx.restore();
 }
 
 // --- WeChat Touch Events ---
@@ -766,8 +841,24 @@ function processTurn() {
                     if (res.confirm && res.content && res.content.trim() !== '') {
                         name = res.content.substring(0, 10);
                     }
-                    wx.setStorageSync('circly_nickname', name);
-                    uploadScoreToCloud(name);
+                    // Content security check (msgSecCheck)
+                    wx.cloud.callFunction({
+                        name: 'msgSecCheck',
+                        data: { content: name },
+                        success: (checkRes) => {
+                            if (checkRes.result && checkRes.result.risky) {
+                                name = 'Player_' + Math.floor(Math.random() * 9999);
+                                wx.showToast({ title: '昵称含违规内容，已重置', icon: 'none' });
+                            }
+                            wx.setStorageSync('circly_nickname', name);
+                            uploadScoreToCloud(name);
+                        },
+                        fail: () => {
+                            // Fallback: still upload even if check fails
+                            wx.setStorageSync('circly_nickname', name);
+                            uploadScoreToCloud(name);
+                        }
+                    });
                 }
             });
         } else {
