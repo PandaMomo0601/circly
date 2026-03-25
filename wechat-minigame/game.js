@@ -210,7 +210,7 @@ function drawStartScreen() {
 
     // Buttons centered vertically
     const btnY = ch * 0.52;
-    const playBtn = new CanvasButton(centerX - 120, btnY, 240, 60, 'PLAY', '#00e676', '#ffffff', () => {
+    const playBtn = new CanvasButton(centerX - 120, btnY, 240, 60, '开始游戏', '#00e676', '#ffffff', () => {
         state.screen = 'GAME';
         state.started = true;
         state.gameOver = false;
@@ -230,7 +230,7 @@ function drawStartScreen() {
     roundRect(ctx, playBtn.x, playBtn.y + 6, playBtn.w, playBtn.h, playBtn.radius, true, false);
     playBtn.draw(ctx);
 
-    const lbBtn = new CanvasButton(centerX - 100, btnY + 90, 200, 56, 'RANKING', '#3498db', '#ffffff', () => {
+    const lbBtn = new CanvasButton(centerX - 100, btnY + 90, 200, 56, '排行榜', '#3498db', '#ffffff', () => {
         state.screen = 'LEADERBOARD';
         fetchLeaderboard();
     }, 28);
@@ -257,7 +257,7 @@ function drawGameScreen() {
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText('SCORE', centerX - 105 + boxW/2, scoreBoxY + 10);
+    ctx.fillText('得分', centerX - 105 + boxW/2, scoreBoxY + 10);
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 22px sans-serif';
     ctx.fillText(Math.floor(state.score), centerX - 105 + boxW/2, scoreBoxY + 30);
@@ -268,7 +268,7 @@ function drawGameScreen() {
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText('BEST', centerX + 5 + boxW/2, scoreBoxY + 10);
+    ctx.fillText('最高', centerX + 5 + boxW/2, scoreBoxY + 10);
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 22px sans-serif';
     ctx.fillText(Math.floor(state.highScore), centerX + 5 + boxW/2, scoreBoxY + 30);
@@ -277,7 +277,7 @@ function drawGameScreen() {
     drawSettingsButton(cw - 56, state.layout.topBarY);
 
     // Back / Home Button (left side)
-    const backBtn = new CanvasButton(16, state.layout.topBarY, 82, 36, '\u276e HOME', 'rgba(255,255,255,0.1)', '#ffffff', () => {
+    const backBtn = new CanvasButton(16, state.layout.topBarY, 82, 36, '\u276e 主页', 'rgba(255,255,255,0.1)', '#ffffff', () => {
         state.screen = 'START';
         state.started = false;
     }, 18);
@@ -303,13 +303,13 @@ function drawGameOverScreen() {
     ctx.fillStyle = '#1abc9c';
     ctx.font = 'bold 40px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', cw / 2, ch * 0.35);
+    ctx.fillText('游戏结束', cw / 2, ch * 0.35);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '24px sans-serif';
-    ctx.fillText('Score: ' + Math.floor(state.score), cw / 2, ch * 0.45);
+    ctx.fillText('得分：' + Math.floor(state.score), cw / 2, ch * 0.45);
 
-    const retryBtn = new CanvasButton(cw/2 - 120, ch * 0.55, 240, 56, 'PLAY AGAIN', '#1abc9c', '#000000', () => {
+    const retryBtn = new CanvasButton(cw/2 - 120, ch * 0.55, 240, 56, '再来一局', '#1abc9c', '#000000', () => {
         state.screen = 'GAME';
         state.started = true;
         state.gameOver = false;
@@ -320,7 +320,7 @@ function drawGameOverScreen() {
     }, 28);
     retryBtn.draw(ctx);
 
-    const homeBtn = new CanvasButton(cw/2 - 120, ch * 0.55 + 80, 240, 56, 'MAIN MENU', '#95a5a6', '#ffffff', () => {
+    const homeBtn = new CanvasButton(cw/2 - 120, ch * 0.55 + 80, 240, 56, '返回主页', '#95a5a6', '#ffffff', () => {
         // Clear saved state so next Play is fresh
         wx.removeStorageSync('circly_saved_grid');
         wx.removeStorageSync('circly_saved_hands');
@@ -358,7 +358,7 @@ function drawSettingsModal() {
     ctx.fillStyle = '#1abc9c';
     ctx.font = 'bold 32px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('SETTINGS', cw / 2, my + 50);
+    ctx.fillText('设置', cw / 2, my + 50);
 
     // Toggles
     const s = state.settings;
@@ -369,18 +369,18 @@ function drawSettingsModal() {
         ctx.fillText(label, mx + 30, y + 25);
         
         const color = val ? '#1abc9c' : '#bdc3c7';
-        const text = val ? 'ON' : 'OFF';
+        const text = val ? '开' : '关';
         const btn = new CanvasButton(mx + mw - 90, y, 60, 34, text, color, val ? '#000' : '#fff', onClick, 17);
         btn.draw(ctx);
     };
 
-    drawToggle(my + 100, 'Music', s.music, () => { s.music = !s.music; });
-    drawToggle(my + 160, 'Sounds', s.sounds, () => { s.sounds = !s.sounds; });
-    drawToggle(my + 220, 'Vibration', s.haptics, () => { s.haptics = !s.haptics; });
+    drawToggle(my + 100, '音乐', s.music, () => { s.music = !s.music; });
+    drawToggle(my + 160, '音效', s.sounds, () => { s.sounds = !s.sounds; });
+    drawToggle(my + 220, '振动', s.haptics, () => { s.haptics = !s.haptics; });
 
     let nextY = my + 280;
     if (showRestart) {
-        const restartBtn = new CanvasButton(mx + 30, nextY, mw - 60, 44, 'RESTART GAME', '#e74c3c', '#ffffff', () => {
+        const restartBtn = new CanvasButton(mx + 30, nextY, mw - 60, 44, '重新开始', '#e74c3c', '#ffffff', () => {
             state.confirmModal = true;
         }, 22);
         restartBtn.draw(ctx);
@@ -395,7 +395,7 @@ function drawSettingsModal() {
     ctx.lineTo(mx + mw - 30, nextY);
     ctx.stroke();
 
-    const closeBtn = new CanvasButton(mx + 30, nextY + 15, mw - 60, 44, 'CLOSE', '#1abc9c', '#000000', () => {
+    const closeBtn = new CanvasButton(mx + 30, nextY + 15, mw - 60, 44, '关闭', '#1abc9c', '#000000', () => {
         state.settingsOpen = false;
     }, 22);
     closeBtn.draw(ctx);
@@ -419,18 +419,18 @@ function drawConfirmModal() {
     ctx.fillStyle = '#1abc9c';
     ctx.font = 'bold 28px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('RESTART', cw / 2, my + 50);
+    ctx.fillText('重新开始', cw / 2, my + 50);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '18px sans-serif';
-    ctx.fillText('Abandon current game?', cw / 2, my + 95);
+    ctx.fillText('确定放弃当前游戏？', cw / 2, my + 95);
 
-    const cancelBtn = new CanvasButton(mx + 20, my + 130, mw/2 - 30, 44, 'CANCEL', '#1abc9c', '#000000', () => {
+    const cancelBtn = new CanvasButton(mx + 20, my + 130, mw/2 - 30, 44, '取消', '#1abc9c', '#000000', () => {
         state.confirmModal = false;
     }, 22);
     cancelBtn.draw(ctx);
 
-    const okBtn = new CanvasButton(mx + mw/2 + 10, my + 130, mw/2 - 30, 44, 'OK', '#e74c3c', '#ffffff', () => {
+    const okBtn = new CanvasButton(mx + mw/2 + 10, my + 130, mw/2 - 30, 44, '确定', '#e74c3c', '#ffffff', () => {
         // Match original: confirmOkBtn restarts and enters GAME, not home
         state.score = 0;
         state.round = 0;
@@ -496,18 +496,18 @@ function drawLeaderboardScreen() {
     ctx.fillStyle = '#f1c40f';
     ctx.font = 'bold 36px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('GLOBAL TOP 10', cw / 2, safeTop + 40);
+    ctx.fillText('今日排行榜前10', cw / 2, safeTop + 40);
 
     ctx.fillStyle = '#bdc3c7';
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Resets Daily at Midnight (UTC+8)', cw / 2, safeTop + 65);
+    ctx.fillText('每日凌晨重置', cw / 2, safeTop + 65);
 
     if (leaderboardLoading) {
         ctx.fillStyle = '#bdc3c7';
         ctx.textAlign = 'center';
         ctx.font = '24px sans-serif';
-        ctx.fillText('Loading...', cw / 2, ch / 2);
+        ctx.fillText('加载中...', cw / 2, ch / 2);
     } else if (leaderboardData) {
         if (leaderboardData.length === 0) {
             ctx.fillStyle = '#bdc3c7';
@@ -537,7 +537,7 @@ function drawLeaderboardScreen() {
                 
                 ctx.textAlign = 'left';
                 ctx.font = '20px sans-serif';
-                ctx.fillText(entry.nickname || 'Player', 110, y);
+                ctx.fillText(entry.nickname || '玩家', 110, y);
                 
                 ctx.textAlign = 'right';
                 ctx.fillStyle = '#2ecc71';
@@ -568,7 +568,7 @@ function drawLeaderboardScreen() {
 
             ctx.textAlign = 'left';
             ctx.font = '20px sans-serif';
-            ctx.fillText(myLeaderboardData.nickname || 'Player', 116, myBoxY + 38);
+            ctx.fillText(myLeaderboardData.nickname || '玩家', 116, myBoxY + 38);
             
             ctx.textAlign = 'right';
             ctx.fillStyle = '#2ecc71';
@@ -578,10 +578,10 @@ function drawLeaderboardScreen() {
         ctx.fillStyle = '#e74c3c';
         ctx.textAlign = 'center';
         ctx.font = '24px sans-serif';
-        ctx.fillText('Failed to load', cw / 2, ch / 2);
+        ctx.fillText('加载失败', cw / 2, ch / 2);
     }
 
-    const closeBtn = new CanvasButton(cw/2 - 80, ch - 80, 160, 50, 'BACK', '#e74c3c', '#ffffff', () => {
+    const closeBtn = new CanvasButton(cw/2 - 80, ch - 80, 160, 50, '返回', '#e74c3c', '#ffffff', () => {
         state.screen = 'START';
     }, 25);
     closeBtn.draw(ctx);
@@ -837,7 +837,7 @@ function processTurn() {
                 editable: true,
                 placeholderText: '例如：正义的断幺九',
                 success: (res) => {
-                    let name = 'Player_' + Math.floor(Math.random() * 9999);
+                    let name = '玩家_' + Math.floor(Math.random() * 9999);
                     if (res.confirm && res.content && res.content.trim() !== '') {
                         name = res.content.substring(0, 10);
                     }
@@ -847,7 +847,7 @@ function processTurn() {
                         data: { content: name },
                         success: (checkRes) => {
                             if (checkRes.result && checkRes.result.risky) {
-                                name = 'Player_' + Math.floor(Math.random() * 9999);
+                                name = '玩家_' + Math.floor(Math.random() * 9999);
                                 wx.showToast({ title: '昵称含违规内容，已重置', icon: 'none' });
                             }
                             wx.setStorageSync('circly_nickname', name);
